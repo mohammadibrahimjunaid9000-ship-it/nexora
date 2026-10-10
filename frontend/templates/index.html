@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexora — The Future of AI-Driven Learning</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+  <!-- ─── Background Glows ─── -->
+  <div class="glow-blob glow-1"></div>
+  <div class="glow-blob glow-2"></div>
+
+  <!-- ─── Navbar ─── -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-brand" onclick="showPage('home')" style="cursor:pointer">
+      <div class="logo-icon">N</div>
+      <span class="text-gradient">Nexora</span>
+    </div>
+    
+    <!-- Navigation Links -->
+    <ul class="nav-links" id="navLinks">
+      <li id="homeNavItem"><a href="#" onclick="showPage('home')" class="nav-link active" data-page="home">Home</a></li>
+      <li id="coursesNavItem"><a href="#" onclick="showPage('courses')" class="nav-link" data-page="courses">Courses</a></li>
+      <li id="collabNavItem"><a href="#" onclick="showPage('collaboration')" class="nav-link" data-page="collaboration">Collaboration</a></li>
+      <li id="dashNavItem" style="display:none"><a href="#" onclick="showPage('dashboard')" class="nav-link nav-link-dash" id="dashLink" data-page="dashboard">Dashboard</a></li>
+      <li id="creatorNavItem" style="display:none"><a href="#" onclick="showPage('creator')" class="nav-link nav-link-admin" id="creatorLink" data-page="creator">Creator Studio</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <div id="navAuth" style="display: flex; align-items: center; gap: 12px;">
+        <button class="btn btn-outline btn-sm" onclick="openModal('authLoginModal')">Sign In</button>
+        <button class="btn btn-primary btn-sm" onclick="openRoleSelectionModal()">Create Account</button>
+      </div>
+      <div id="navUser" style="display:none; align-items: center; gap: 16px;">
+        <div id="userGreeting" class="user-greeting"></div>
+        <button class="btn btn-outline btn-sm" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="appMain">
+
+    <!-- ─── HERO / HOME PAGE ─── -->
+    <div id="page-home" class="page active">
+      <section class="hero">
+        <div class="hero-content">
+          <span class="hero-tag">AI-Powered Ecosystem</span>
+          <h1 class="hero-title">Experience the <span class="text-gradient">Next Era</span> of Learning</h1>
+          <p class="hero-desc">The ultimate platform for creators to teach and learners to master skills through collaboration, live sessions, and AI-driven insights.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary btn-lg" onclick="showPage('courses')">Explore Courses</button>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="floating-card card-main"></div>
+          <div class="floating-card card-1">
+            <div style="font-weight: 700; margin-bottom: 12px; font-size: 14px;">Live Ecosystem</div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary);"></div>
+              <div>
+                <div style="font-size: 12px; font-weight: 600;">Real-Time Data</div>
+                <div style="font-size: 10px; color: var(--text-muted);">Supabase PostgreSQL & Storage</div>
+              </div>
+            </div>
+          </div>
+          <div class="floating-card card-2">
+            <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px;">1-on-1 Mentorship</div>
+            <div style="font-size: 11px; color: var(--text-muted);">Request personalized sessions with creators</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dynamic Homepage Sections -->
+      <div class="section-container">
+        <div class="section-header">
+          <h2 class="section-title">Newest <span class="text-gradient">Courses</span></h2>
+          <p class="section-subtitle">Freshly published courses from verified creators.</p>
+        </div>
+        <div class="courses-grid" id="homeNewestGrid"></div>
+
+        <div class="section-header" style="margin-top: 60px;">
+          <h2 class="section-title">Upcoming <span class="text-gradient">Live Sessions</span></h2>
+          <p class="section-subtitle">Book your seat in real-time webinars with mentors.</p>
+        </div>
+        <div class="live-scroll" id="homeLiveGrid"></div>
+      </div>
+    </div>
+
+    <!-- ─── COURSES PAGE ─── -->
+    <div id="page-courses" class="page">
+      <div class="section-container">
+        <div class="section-header">
+          <h2 class="section-title">Discover <span class="text-gradient">Playlists</span></h2>
+          <p class="section-subtitle">Explore courses created by mentors in the Nexora network.</p>
+        </div>
+        
+        <div class="form-group" style="max-width: 600px; margin-bottom: 40px;">
+          <input type="text" id="searchInput" class="form-input" placeholder="Search by course title, category, or instructor..." oninput="filterCourses()">
+        </div>
+
+        <div class="courses-grid" id="coursesGrid"></div>
+
+        <div class="section-header" style="margin-top: 80px;">
+          <h2 class="section-title">Live <span class="text-gradient">Sessions</span></h2>
+          <p class="section-subtitle">Real-time interactive sessions scheduled by top creators.</p>
+        </div>
+        <div class="live-scroll" id="availableLiveGrid"></div>
+      </div>
+    </div>
+
+    <!-- ─── LEARNER DASHBOARD ─── -->
+    <div id="page-dashboard" class="page">
+      <div class="dashboard-wrapper">
+        <aside class="sidebar">
+          <div class="sidebar-link active" id="tab-link-overview" onclick="switchDashTab('overview')"><span>Overview</span></div>
+          <div class="sidebar-link" id="tab-link-my-courses" onclick="switchDashTab('my-courses')"><span>Enrolled Courses</span></div>
+          <div class="sidebar-link" id="tab-link-my-live" onclick="switchDashTab('my-live')"><span>Live Bookings</span></div>
+        </aside>
+        <main class="dashboard-content">
+          <!-- Overview Tab -->
+          <div id="dash-section-overview" class="dash-section active">
+            <div class="stats-grid" id="dashStats"></div>
+            <h3 class="section-heading" style="margin-bottom: 24px;">Continue Watching</h3>
+            <div class="courses-grid" id="continueWatchingGrid"></div>
+          </div>
+
+          <!-- My Courses Tab -->
+          <div id="dash-section-my-courses" class="dash-section">
+            <h3 class="section-heading" style="margin-bottom: 24px;">My Enrolled Courses</h3>
+            <div class="courses-grid" id="myCoursesGrid"></div>
+          </div>
+
+          <!-- My Live Tab -->
+          <div id="dash-section-my-live" class="dash-section">
+            <h3 class="section-heading" style="margin-bottom: 24px;">My Booked Live Sessions</h3>
+            <div class="live-scroll" id="myUpcomingLiveGrid"></div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- ─── CREATOR STUDIO (COMPLETELY SEPARATE) ─── -->
+    <div id="page-creator" class="page">
+      <div class="dashboard-wrapper">
+        <aside class="sidebar">
+          <div class="sidebar-link active" id="cside-link-dashboard" onclick="switchCreatorTab('dashboard')"><span>Dashboard</span></div>
+          <div class="sidebar-link" id="cside-link-my-courses" onclick="switchCreatorTab('my-courses')"><span>My Content</span></div>
+          <div class="sidebar-link" id="cside-link-upload" onclick="switchCreatorTab('upload')"><span>Upload Content</span></div>
+          <div class="sidebar-link" id="cside-link-live" onclick="switchCreatorTab('live')"><span>Schedule Live Session</span></div>
+          <div class="sidebar-link" id="cside-link-requests" onclick="switchCreatorTab('requests')"><span>Student Requests</span></div>
+          <div class="sidebar-link" id="cside-link-analytics" onclick="switchCreatorTab('analytics')"><span>Analytics</span></div>
+          <div class="sidebar-link" id="cside-link-profile" onclick="switchCreatorTab('profile')"><span>Profile</span></div>
+          <div class="sidebar-link" onclick="logout()" style="color: #ef4444;"><span>Logout</span></div>
+        </aside>
+        
+        <main class="dashboard-content">
+          <!-- Creator Dashboard View (Overview only) -->
+          <div id="creator-view-dashboard" class="creator-view active">
+            <div style="margin-bottom: 24px;">
+              <h2 class="section-title" style="font-size: 26px; margin-bottom: 6px;">Creator <span class="text-gradient">Studio Dashboard</span></h2>
+              <p style="color: var(--text-muted); font-size: 14px;">Welcome back! Here is a summary of your content reach, students, and revenue.</p>
+            </div>
+            
+            <div class="stats-grid" id="creatorStats" style="margin-bottom: 32px;"></div>
+
+            <h3 class="section-heading" style="margin-bottom: 16px;">Quick Actions</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 32px;">
+              <div class="stat-card" onclick="switchCreatorTab('upload')" style="cursor: pointer; transition: var(--transition);">
+                <div style="font-size: 28px; margin-bottom: 8px;">📤</div>
+                <h4 style="margin: 0 0 6px; font-size: 16px;">Upload Content</h4>
+                <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Publish a single video or build a course playlist.</p>
+              </div>
+              <div class="stat-card" onclick="switchCreatorTab('live')" style="cursor: pointer; transition: var(--transition);">
+                <div style="font-size: 28px; margin-bottom: 8px;">🎥</div>
+                <h4 style="margin: 0 0 6px; font-size: 16px;">Live Sessions</h4>
+                <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Schedule and manage real-time webinars & Google Meet.</p>
+              </div>
+              <div class="stat-card" onclick="switchCreatorTab('my-courses')" style="cursor: pointer; transition: var(--transition);">
+                <div style="font-size: 28px; margin-bottom: 8px;">📁</div>
+                <h4 style="margin: 0 0 6px; font-size: 16px;">My Content</h4>
+                <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Manage existing playlists and videos.</p>
+              </div>
+              <div class="stat-card" onclick="switchCreatorTab('requests')" style="cursor: pointer; transition: var(--transition);">
+                <div style="font-size: 28px; margin-bottom: 8px;">💬</div>
+                <h4 style="margin: 0 0 6px; font-size: 16px;">Student Requests</h4>
+                <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Review pending 1-on-1 mentorship requests.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Creator My Content View (Playlists and Single Videos only) -->
+          <div id="creator-view-my-courses" class="creator-view">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+              <div>
+                <h2 class="section-title" style="font-size: 26px; margin-bottom: 6px;">My <span class="text-gradient">Content</span></h2>
+                <p style="color: var(--text-muted); font-size: 14px;">Manage your published and draft playlists and uploaded videos.</p>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="switchCreatorTab('upload')">+ Upload New Content</button>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 class="section-heading">My Course Playlists</h3>
+            </div>
+            <div id="myPlaylistsList" class="admin-courses-list" style="margin-bottom: 36px;"></div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 class="section-heading">Single Standalone Videos</h3>
+            </div>
+            <div id="mySingleVideosList" class="admin-courses-list" style="margin-bottom: 36px;"></div>
+
+            <div id="creatorCoursesFullList" style="display:none;"></div>
+          </div>
+
+          <!-- Creator Upload Content View (Upload Hub) -->
+          <div id="creator-view-upload" class="creator-view">
+            <div style="margin-bottom: 24px;">
+              <h2 class="section-title" style="font-size: 26px; margin-bottom: 6px;">Upload <span class="text-gradient">Content</span></h2>
+              <p style="color: var(--text-muted); font-size: 14px;">Select the format of educational content you want to create and share with learners.</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+              <div class="stat-card" style="padding: 28px; display: flex; flex-direction: column; justify-content: space-between; border-color: rgba(139, 92, 246, 0.3);">
+                <div>
+                  <div style="font-size: 36px; margin-bottom: 14px;">📁</div>
+                  <h3 style="margin: 0 0 8px; font-size: 18px;">Create New Playlist</h3>
+                  <p style="color: var(--text-muted); font-size: 13px; line-height: 1.5; margin-bottom: 20px;">
+                    Build a structured multi-lesson course playlist. Set pricing, difficulty level, and organize curriculum episodes.
+                  </p>
+                </div>
+                <button class="btn btn-primary btn-full" onclick="openModal('createPlaylistModal')">Create New Playlist</button>
+              </div>
+
+              <div class="stat-card" style="padding: 28px; display: flex; flex-direction: column; justify-content: space-between; border-color: rgba(6, 182, 212, 0.3);">
+                <div>
+                  <div style="font-size: 36px; margin-bottom: 14px;">🎬</div>
+                  <h3 style="margin: 0 0 8px; font-size: 18px;">Upload Single Video</h3>
+                  <p style="color: var(--text-muted); font-size: 13px; line-height: 1.5; margin-bottom: 20px;">
+                    Publish a standalone tutorial, deep dive, or lesson directly with custom tags and pricing options.
+                  </p>
+                </div>
+                <button class="btn btn-outline btn-full" onclick="openModal('uploadSingleVideoModal')">Upload Single Video</button>
+              </div>
+
+              <div class="stat-card" style="padding: 28px; display: flex; flex-direction: column; justify-content: space-between; border-color: rgba(245, 158, 11, 0.3);">
+                <div>
+                  <div style="font-size: 36px; margin-bottom: 14px;">➕</div>
+                  <h3 style="margin: 0 0 8px; font-size: 18px;">Add to Existing Playlist</h3>
+                  <p style="color: var(--text-muted); font-size: 13px; line-height: 1.5; margin-bottom: 20px;">
+                    Attach a new video lesson or episode to one of your existing course playlists.
+                  </p>
+                </div>
+                <button class="btn btn-outline btn-full" onclick="openAddVideoToPlaylistModal()">Add Video to Playlist</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Creator Schedule Live Session View (Live management) -->
+          <div id="creator-view-live" class="creator-view">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+              <div>
+                <h2 class="section-title" style="font-size: 26px; margin-bottom: 6px;">Live Sessions & <span class="text-gradient">Mentorship</span></h2>
+                <p style="color: var(--text-muted); font-size: 14px;">Host real-time interactive webinars and 1-on-1 sessions. Synced directly with Google Meet.</p>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="openModal('addLiveModal')">+ Schedule Live Session</button>
+            </div>
+
+            <div class="live-scroll" id="liveSessionsList"></div>
+          </div>
+
+          <!-- Creator Student Requests View -->
+          <div id="creator-view-requests" class="creator-view">
+            <div style="margin-bottom: 24px;">
+              <h2 class="section-title" style="font-size: 26px; margin-bottom: 6px;">1-on-1 Student <span class="text-gradient">Live Requests</span></h2>
+              <p style="color: var(--text-muted); font-size: 14px;">Review and manage personal mentorship session requests submitted by learners.</p>
+            </div>
+            <div id="creatorRequestsList"></div>
+          </div>
+
+          <!-- Creator Analytics View -->
+          <div id="creator-view-analytics" class="creator-view">
+            <div style="margin-bottom: 24px;">
+              <h2 class="section-title" style="font-size: 26px; margin-bottom: 6px;">Performance & <span class="text-gradient">Reviews</span></h2>
+              <p style="color: var(--text-muted); font-size: 14px;">Track student ratings, feedback, and platform revenue metrics.</p>
+            </div>
+            <div class="stats-grid" id="creatorAnalyticsStats" style="margin-bottom: 32px;"></div>
+            <h4 style="margin-bottom: 16px;">Recent Reviews</h4>
+            <div id="creatorReviewsList"></div>
+          </div>
+
+          <!-- Creator Profile View -->
+          <div id="creator-view-profile" class="creator-view">
+            <div style="margin-bottom: 24px;">
+              <h2 class="section-title" style="font-size: 26px; margin-bottom: 6px;">Creator <span class="text-gradient">Profile</span></h2>
+              <p style="color: var(--text-muted); font-size: 14px;">Your public instructor persona, bio, and connected credentials.</p>
+            </div>
+            <div id="creatorProfileCard" class="stat-card" style="max-width: 500px;"></div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- ─── COLLABORATION PAGE ─── -->
+    <div id="page-collaboration" class="page">
+      <div class="section-container">
+        <div class="collab-container">
+          <div class="collab-sidebar">
+            <h2 class="section-title">Collab <span class="text-gradient">Hub</span></h2>
+            <p class="section-subtitle" style="margin-bottom: 24px;">Connect with teams or recruit members for your next project.</p>
+            <button class="btn btn-primary btn-full" onclick="openModal('addCollabModal')" style="margin-bottom: 20px;">Post Project Request</button>
+          </div>
+          <div class="collab-feed" id="collabFeed"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ─── MODALS ─── -->
+
+  <!-- Unified Single Login Modal -->
+  <div class="modal-overlay" id="authLoginModal">
+    <div class="modal modal-auth">
+      <button class="modal-close" onclick="closeModal('authLoginModal')">&times;</button>
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h2 class="section-title" style="font-size: 28px; margin-bottom: 8px;">Welcome to <span class="text-gradient">Nexora</span></h2>
+        <p style="color: var(--text-muted); font-size: 14px;">Sign in to access your learning ecosystem</p>
+      </div>
+
+      <div id="authLoginError" class="form-error" style="display:none; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 18px;"></div>
+
+      <!-- Primary Google Login Button -->
+      <button class="btn btn-google btn-full" onclick="loginWithGoogle()" style="margin-bottom: 20px;">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+        Continue with Google
+      </button>
+
+      <div class="auth-divider">
+        <span>OR</span>
+      </div>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="loginEmail" class="form-input" placeholder="name@example.com">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <label style="margin:0;">Password</label>
+          <a href="#" style="font-size: 12px; color: var(--secondary); text-decoration: none;" onclick="switchModal('authLoginModal', 'authForgotPasswordModal')">Forgot Password?</a>
+        </div>
+        <input type="password" id="loginPassword" class="form-input" placeholder="••••••••">
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="submitEmailLogin()" style="margin-top: 16px;">Login</button>
+
+      <p style="margin-top: 24px; text-align: center; font-size: 14px; color: var(--text-muted);">
+        Don't have an account? <a href="#" style="color: var(--secondary); font-weight: 600;" onclick="switchModal('authLoginModal', 'authChooseRoleModal')">Create Account</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Account Type / Role Selection Modal -->
+  <div class="modal-overlay" id="authChooseRoleModal">
+    <div class="modal modal-auth" style="max-width: 580px;">
+      <button class="modal-close" onclick="closeModal('authChooseRoleModal')">&times;</button>
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h2 class="section-title" style="font-size: 26px; margin-bottom: 8px;">Create Your <span class="text-gradient">Nexora Account</span></h2>
+        <p style="color: var(--text-muted); font-size: 14px;">How would you like to join Nexora?</p>
+      </div>
+
+      <div class="account-type-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <!-- Become a Creator Card -->
+        <div class="role-choice-card" onclick="selectRegistrationRole('creator')" style="background: var(--bg-deep); border: 1px solid var(--border-glass); border-radius: 16px; padding: 22px 18px; cursor: pointer; transition: var(--transition); display: flex; flex-direction: column; text-align: left;">
+          <div style="font-size: 34px; margin-bottom: 12px; line-height: 1;">👨‍🏫</div>
+          <h3 style="font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 12px;">Become a Creator</h3>
+          <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 8px; flex: 1;">
+            <li style="display: flex; align-items: center; gap: 8px;"><span style="color: var(--primary); font-size: 14px;">•</span> Teach courses</li>
+            <li style="display: flex; align-items: center; gap: 8px;"><span style="color: var(--primary); font-size: 14px;">•</span> Host live learning sessions</li>
+            <li style="display: flex; align-items: center; gap: 8px;"><span style="color: var(--primary); font-size: 14px;">•</span> Collaborate with learners</li>
+          </ul>
+          <div style="margin-top: 18px;">
+            <span class="btn btn-outline btn-sm btn-full" style="pointer-events: none; border-color: rgba(139, 92, 246, 0.4); color: var(--primary);">Join as Creator &rarr;</span>
+          </div>
+        </div>
+
+        <!-- Become a Learner Card -->
+        <div class="role-choice-card" onclick="selectRegistrationRole('learner')" style="background: var(--bg-deep); border: 1px solid var(--border-glass); border-radius: 16px; padding: 22px 18px; cursor: pointer; transition: var(--transition); display: flex; flex-direction: column; text-align: left;">
+          <div style="font-size: 34px; margin-bottom: 12px; line-height: 1;">🎓</div>
+          <h3 style="font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 12px;">Become a Learner</h3>
+          <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 8px; flex: 1;">
+            <li style="display: flex; align-items: center; gap: 8px;"><span style="color: var(--secondary); font-size: 14px;">•</span> Learn courses</li>
+            <li style="display: flex; align-items: center; gap: 8px;"><span style="color: var(--secondary); font-size: 14px;">•</span> Join live sessions</li>
+            <li style="display: flex; align-items: center; gap: 8px;"><span style="color: var(--secondary); font-size: 14px;">•</span> Collaborate with creators</li>
+          </ul>
+          <div style="margin-top: 18px;">
+            <span class="btn btn-outline btn-sm btn-full" style="pointer-events: none; border-color: rgba(6, 182, 212, 0.4); color: var(--secondary);">Join as Learner &rarr;</span>
+          </div>
+        </div>
+      </div>
+
+      <p style="text-align: center; font-size: 14px; color: var(--text-muted); margin: 0;">
+        Already have an account? <a href="#" style="color: var(--secondary); font-weight: 600;" onclick="switchModal('authChooseRoleModal', 'authLoginModal')">Sign In</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Registration Modal -->
+  <div class="modal-overlay" id="authRegisterModal">
+    <div class="modal modal-auth">
+      <button class="modal-close" onclick="closeModal('authRegisterModal')">&times;</button>
+      <input type="hidden" id="regRole" value="learner">
+      
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div id="regRoleBadge" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; border-radius: 100px; font-size: 12px; font-weight: 700; margin-bottom: 12px; background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.3); color: var(--secondary);">
+          <span>🎓 Learner Account</span>
+          <a href="#" onclick="switchModal('authRegisterModal', 'authChooseRoleModal')" style="color: var(--text-dim); text-decoration: underline; font-weight: 500; font-size: 11px; margin-left: 4px;">Change</a>
+        </div>
+        <h2 class="section-title" id="regModalTitle" style="font-size: 28px; margin-bottom: 8px;">Create your <span class="text-gradient">Nexora Account</span></h2>
+        <p id="regModalSubtitle" style="color: var(--text-muted); font-size: 14px;">Join the future of AI-driven learning and mentorship</p>
+      </div>
+
+      <div id="authRegisterError" class="form-error" style="display:none; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 18px;"></div>
+
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" id="regFullName" class="form-input" placeholder="e.g. Alex Johnson">
+      </div>
+
+      <div class="form-group">
+        <label>Email Address *</label>
+        <input type="email" id="regEmail" class="form-input" placeholder="alex@example.com">
+      </div>
+
+      <div class="form-group">
+        <label>Password *</label>
+        <input type="password" id="regPassword" class="form-input" placeholder="Min 6 characters">
+      </div>
+
+      <div class="form-group">
+        <label>Confirm Password *</label>
+        <input type="password" id="regConfirmPassword" class="form-input" placeholder="Re-enter password">
+      </div>
+
+      <button class="btn btn-google btn-full" onclick="loginWithGoogle()" style="margin-bottom: 12px;">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+        Continue with Google
+      </button>
+
+      <button class="btn btn-primary btn-full" id="regSubmitBtn" onclick="submitEmailRegister()">Create Account</button>
+
+      <p style="margin-top: 24px; text-align: center; font-size: 14px; color: var(--text-muted);">
+        Already have an account? <a href="#" style="color: var(--secondary); font-weight: 600;" onclick="switchModal('authRegisterModal', 'authLoginModal')">Sign In</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- First Time Onboarding Role Selection Modal -->
+  <div class="modal-overlay" id="authRoleSelectionModal">
+    <div class="modal modal-auth" style="max-width: 520px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div class="logo-icon" style="margin: 0 auto 16px; width: 48px; height: 48px; font-size: 24px;">N</div>
+        <h2 class="section-title" style="font-size: 26px; margin-bottom: 8px;">Welcome to <span class="text-gradient">Nexora</span></h2>
+        <p style="color: var(--text-muted); font-size: 14px;">Choose your role to customize your platform experience</p>
+      </div>
+
+      <div id="roleSelectionError" class="form-error" style="display:none; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 18px;"></div>
+
+      <div class="role-options-grid" style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px;">
+        <!-- Learner Option Card -->
+        <label class="role-card active" id="card-role-learner" onclick="selectRoleOption('learner')">
+          <input type="radio" name="selectedRole" value="learner" checked style="accent-color: var(--secondary); width: 18px; height: 18px;">
+          <div style="flex: 1;">
+            <div style="font-weight: 700; font-size: 16px; color: white; margin-bottom: 2px;">○ Learner</div>
+            <div style="font-size: 13px; color: var(--text-muted);">Discover courses, enroll in playlists, book 1-on-1 mentorship, and track progress.</div>
+          </div>
+        </label>
+
+        <!-- Creator Option Card -->
+        <label class="role-card" id="card-role-creator" onclick="selectRoleOption('creator')">
+          <input type="radio" name="selectedRole" value="creator" style="accent-color: var(--primary); width: 18px; height: 18px;">
+          <div style="flex: 1;">
+            <div style="font-weight: 700; font-size: 16px; color: white; margin-bottom: 2px;">○ Creator</div>
+            <div style="font-size: 13px; color: var(--text-muted);">Publish single videos, build playlists, schedule live sessions, and mentor learners.</div>
+          </div>
+        </label>
+
+        <!-- Admin Option Card (Reserved for Future) -->
+        <label class="role-card role-card-disabled" style="opacity: 0.55; cursor: not-allowed; background: rgba(255,255,255,0.02); border: 1px dashed var(--border-glass); padding: 16px; border-radius: 14px; display: flex; align-items: flex-start; gap: 14px;">
+          <input type="radio" name="selectedRole" value="admin" disabled style="width: 18px; height: 18px;">
+          <div style="flex: 1;">
+            <div style="font-weight: 700; font-size: 15px; color: var(--text-dim); margin-bottom: 2px;">○ Admin <span style="font-size: 11px; font-weight: 500; color: var(--gold); margin-left: 6px;">(Reserved for Future)</span></div>
+            <div style="font-size: 12px; color: var(--text-dim);">System administration dashboard (Internal management only).</div>
+          </div>
+        </label>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="submitRoleSelection()">Continue</button>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div class="modal-overlay" id="authForgotPasswordModal">
+    <div class="modal modal-auth" style="max-width: 460px;">
+      <button class="modal-close" onclick="closeModal('authForgotPasswordModal')">&times;</button>
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h2 class="section-title" style="font-size: 24px; margin-bottom: 8px;">Reset Password</h2>
+        <p style="color: var(--text-muted); font-size: 13px;">Enter your email to receive password reset instructions</p>
+      </div>
+
+      <div id="forgotPasswordError" class="form-error" style="display:none; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 18px;"></div>
+      <div id="forgotPasswordSuccess" class="form-success" style="display:none; color: #10b981; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 18px;"></div>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="forgotEmail" class="form-input" placeholder="name@example.com">
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="submitForgotPassword()">Send Reset Instructions</button>
+
+      <p style="margin-top: 20px; text-align: center; font-size: 13px; color: var(--text-muted);">
+        Remembered password? <a href="#" style="color: var(--secondary);" onclick="switchModal('authForgotPasswordModal', 'authLoginModal')">Back to Login</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Reset Password Modal -->
+  <div class="modal-overlay" id="authResetPasswordModal">
+    <div class="modal modal-auth" style="max-width: 460px;">
+      <button class="modal-close" onclick="closeModal('authResetPasswordModal')">&times;</button>
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h2 class="section-title" style="font-size: 24px; margin-bottom: 8px;">Set New Password</h2>
+        <p style="color: var(--text-muted); font-size: 13px;">Enter your new password below</p>
+      </div>
+
+      <div id="resetPasswordError" class="form-error" style="display:none; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 18px;"></div>
+
+      <input type="hidden" id="resetEmailHidden">
+      <input type="hidden" id="resetTokenHidden">
+
+      <div class="form-group">
+        <label>New Password *</label>
+        <input type="password" id="newPasswordInput" class="form-input" placeholder="Min 6 characters">
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="submitResetPassword()">Update Password</button>
+    </div>
+  </div>
+
+  <!-- Upload Choice Modal -->
+  <div class="modal-overlay" id="uploadChoiceModal">
+    <div class="modal" style="max-width: 500px;">
+      <button class="modal-close" onclick="closeModal('uploadChoiceModal')">&times;</button>
+      <h2 class="section-title" style="margin-bottom: 24px; text-align: center;">Upload Content</h2>
+      <p style="color: var(--text-muted); text-align: center; margin-bottom: 24px;">Choose how you want to publish content to Nexora.</p>
+      
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="choice-card" onclick="switchModal('uploadChoiceModal', 'uploadSingleVideoModal')" style="background: var(--bg-deep); border: 1px solid var(--border-glass); padding: 20px; border-radius: 16px; cursor: pointer; transition: var(--transition);">
+          <div style="font-size: 24px; margin-bottom: 6px;">🎬</div>
+          <h4 style="margin: 0 0 4px; font-size: 16px;">Upload Single Video</h4>
+          <p style="margin: 0; font-size: 13px; color: var(--text-dim);">Publish a standalone video directly with custom title, tags, and pricing.</p>
+        </div>
+
+        <div class="choice-card" onclick="switchModal('uploadChoiceModal', 'createPlaylistModal')" style="background: var(--bg-deep); border: 1px solid var(--border-glass); padding: 20px; border-radius: 16px; cursor: pointer; transition: var(--transition);">
+          <div style="font-size: 24px; margin-bottom: 6px;">📁</div>
+          <h4 style="margin: 0 0 4px; font-size: 16px;">Create New Playlist</h4>
+          <p style="margin: 0; font-size: 13px; color: var(--text-dim);">Create an organized multi-video series or structured course playlist.</p>
+        </div>
+
+        <div class="choice-card" onclick="switchModal('uploadChoiceModal', 'addVideoToPlaylistModal')" style="background: var(--bg-deep); border: 1px solid var(--border-glass); padding: 20px; border-radius: 16px; cursor: pointer; transition: var(--transition);">
+          <div style="font-size: 24px; margin-bottom: 6px;">➕</div>
+          <h4 style="margin: 0 0 4px; font-size: 16px;">Add Video to Existing Playlist</h4>
+          <p style="margin: 0; font-size: 13px; color: var(--text-dim);">Select one of your existing playlists and attach a new video lesson to it.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Single Video Modal -->
+  <div class="modal-overlay" id="uploadSingleVideoModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('uploadSingleVideoModal')">&times;</button>
+      <h2 class="section-title" style="margin-bottom: 24px;">Upload Single Video</h2>
+      
+      <div class="form-group">
+        <label>Video Title *</label>
+        <input type="text" id="svTitle" class="form-input" placeholder="e.g. Master React Hooks in 20 Minutes">
+      </div>
+      
+      <div class="form-group">
+        <label>Description *</label>
+        <textarea id="svDesc" class="form-input" rows="3" placeholder="Summary of what viewers will learn..."></textarea>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label>Category</label>
+          <select id="svCategory" class="form-input">
+            <option>Programming</option><option>Web Dev</option><option>AI/ML</option><option>Design</option><option>Data Science</option><option>General</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Skill Level</label>
+          <select id="svLevel" class="form-input">
+            <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Tags (Comma Separated)</label>
+        <input type="text" id="svTags" class="form-input" placeholder="e.g. react, javascript, frontend">
+      </div>
+
+      <div class="form-group">
+        <label>Thumbnail Image *</label>
+        <input type="file" id="svThumbnailFile" class="form-input" accept="image/*">
+        <input type="text" id="svThumbnailUrl" class="form-input" placeholder="or paste Image URL" style="margin-top: 8px;">
+      </div>
+
+      <div class="form-group">
+        <label>Video File *</label>
+        <input type="file" id="svVideoFile" class="form-input" accept="video/*">
+        <input type="text" id="svVideoUrl" class="form-input" placeholder="or paste Video URL (MP4 link)" style="margin-top: 8px;">
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label>Pricing Type</label>
+          <select id="svIsPaid" class="form-input" onchange="togglePriceField('sv')">
+            <option value="free">Free</option>
+            <option value="paid">Paid</option>
+          </select>
+        </div>
+        <div class="form-group" id="svPriceGroup" style="display:none;">
+          <label>Price (₹) *</label>
+          <input type="number" id="svPrice" class="form-input" value="0">
+        </div>
+      </div>
+
+      <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+        <input type="checkbox" id="svPublish" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
+        <label for="svPublish" style="margin: 0; cursor: pointer;">Publish Immediately</label>
+      </div>
+
+      <!-- Upload Progress Bar -->
+      <div id="svProgressWrap" style="display:none; margin-bottom: 20px;">
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-bottom:6px;">
+          <span id="svProgressStatus">Uploading Video File...</span>
+          <span id="svProgressText">0%</span>
+        </div>
+        <div style="height: 8px; background: var(--bg-deep); border-radius: 10px; overflow: hidden; border: 1px solid var(--border-glass);">
+          <div id="svProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.2s;"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="submitSingleVideoUpload()">Upload & Publish Video</button>
+    </div>
+  </div>
+
+  <!-- Create New Playlist Modal -->
+  <div class="modal-overlay" id="createPlaylistModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('createPlaylistModal')">&times;</button>
+      <h2 class="section-title" style="margin-bottom: 24px;">Create New Playlist</h2>
+
+      <div class="form-group">
+        <label>Playlist Title *</label>
+        <input type="text" id="plTitle" class="form-input" placeholder="e.g. Complete System Design Masterclass">
+      </div>
+
+      <div class="form-group">
+        <label>Description *</label>
+        <textarea id="plDesc" class="form-input" rows="3" placeholder="Overview of what this playlist covers..."></textarea>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label>Category</label>
+          <select id="plCategory" class="form-input">
+            <option>Programming</option><option>Web Dev</option><option>AI/ML</option><option>Design</option><option>Data Science</option><option>General</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Skill Level</label>
+          <select id="plLevel" class="form-input">
+            <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Tags (Comma Separated)</label>
+        <input type="text" id="plTags" class="form-input" placeholder="e.g. architecture, microservices, backend">
+      </div>
+
+      <div class="form-group">
+        <label>Playlist Thumbnail *</label>
+        <input type="file" id="plThumbnailFile" class="form-input" accept="image/*">
+        <input type="text" id="plThumbnailUrl" class="form-input" placeholder="or paste Image URL" style="margin-top: 8px;">
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label>Pricing Type</label>
+          <select id="plIsPaid" class="form-input" onchange="togglePriceField('pl')">
+            <option value="free">Free</option>
+            <option value="paid">Paid</option>
+          </select>
+        </div>
+        <div class="form-group" id="plPriceGroup" style="display:none;">
+          <label>Price (₹) *</label>
+          <input type="number" id="plPrice" class="form-input" value="0">
+        </div>
+      </div>
+
+      <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+        <input type="checkbox" id="plPublish" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
+        <label for="plPublish" style="margin: 0; cursor: pointer;">Publish Playlist Immediately</label>
+      </div>
+
+      <!-- Upload Progress Bar -->
+      <div id="plProgressWrap" style="display:none; margin-bottom: 20px;">
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-bottom:6px;">
+          <span id="plProgressStatus">Uploading Playlist Thumbnail...</span>
+          <span id="plProgressText">0%</span>
+        </div>
+        <div style="height: 8px; background: var(--bg-deep); border-radius: 10px; overflow: hidden; border: 1px solid var(--border-glass);">
+          <div id="plProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.2s;"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="submitCreatePlaylist()">Create Playlist & Add Videos</button>
+    </div>
+  </div>
+
+  <!-- Add Video to Existing Playlist Modal -->
+  <div class="modal-overlay" id="addVideoToPlaylistModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('addVideoToPlaylistModal')">&times;</button>
+      <h2 class="section-title" style="margin-bottom: 24px;">Add Video to Playlist</h2>
+
+      <div class="form-group">
+        <label>Select Target Playlist *</label>
+        <select id="vpPlaylistSelect" class="form-input"></select>
+      </div>
+
+      <div class="form-group">
+        <label>Video Title *</label>
+        <input type="text" id="vpTitle" class="form-input" placeholder="e.g. Episode 1: Introduction">
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="vpDesc" class="form-input" rows="2" placeholder="Brief lesson notes..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Video File *</label>
+        <input type="file" id="vpVideoFile" class="form-input" accept="video/*">
+        <input type="text" id="vpVideoUrl" class="form-input" placeholder="or paste Video URL (MP4 link)" style="margin-top: 8px;">
+      </div>
+
+      <!-- Upload Progress Bar -->
+      <div id="vpProgressWrap" style="display:none; margin-bottom: 20px;">
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-bottom:6px;">
+          <span id="vpProgressStatus">Uploading Video File...</span>
+          <span id="vpProgressText">0%</span>
+        </div>
+        <div style="height: 8px; background: var(--bg-deep); border-radius: 10px; overflow: hidden; border: 1px solid var(--border-glass);">
+          <div id="vpProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.2s;"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="submitAddVideoToPlaylist()">Upload Video to Playlist</button>
+    </div>
+  </div>
+
+  <!-- Manage & Reorder Playlist Videos Modal -->
+  <div class="modal-overlay" id="managePlaylistModal">
+    <div class="modal" style="max-width: 620px;">
+      <button class="modal-close" onclick="closeModal('managePlaylistModal')">&times;</button>
+      <h2 class="section-title" id="managePlaylistTitle" style="margin-bottom: 8px;">Manage Playlist</h2>
+      <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 13px;">Drag and drop videos to reorder. Delete or edit lessons below.</p>
+
+      <div id="manageVideosList" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;"></div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('managePlaylistModal')">Cancel</button>
+        <button class="btn btn-primary btn-sm" onclick="saveReorderedPlaylist()">Save Video Order</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schedule Live Session Modal -->
+  <div class="modal-overlay" id="addLiveModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('addLiveModal')">&times;</button>
+      <h2 class="section-title" style="margin-bottom: 24px;">Schedule Live Session</h2>
+      <div class="form-group"><label>Session Title</label><input type="text" id="lTitle" class="form-input" placeholder="e.g. Live Q&A and Career Guidance"></div>
+      <div class="form-group"><label>Topic</label><input type="text" id="lTopic" class="form-input" placeholder="e.g. System Design"></div>
+      <div class="form-group"><label>Description</label><textarea id="lDesc" class="form-input" rows="2"></textarea></div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group"><label>Date & Time</label><input type="datetime-local" id="lTime" class="form-input"></div>
+        <div class="form-group"><label>Duration (Mins)</label><input type="number" id="lDuration" class="form-input" value="60"></div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group"><label>Max Students</label><input type="number" id="lMax" class="form-input" value="50"></div>
+        <div class="form-group"><label>Price (₹)</label><input type="number" id="lPrice" class="form-input" value="0"></div>
+      </div>
+      <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 16px;">✨ Google Meet link will be generated automatically upon scheduling.</p>
+      <button class="btn btn-primary btn-full" onclick="addLiveSessionSubmit()">Publish Live Session</button>
+    </div>
+  </div>
+
+  <!-- Request 1-on-1 Live Session Modal -->
+  <div class="modal-overlay" id="requestLiveModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('requestLiveModal')">&times;</button>
+      <h2 class="section-title" style="margin-bottom: 24px;">Request 1-on-1 Session</h2>
+      <input type="hidden" id="reqCreatorId">
+      <div class="form-group"><label>Topic / Question</label><input type="text" id="reqTopic" class="form-input" placeholder="e.g. Code review for my AI Chatbot"></div>
+      <div class="form-group"><label>Description</label><textarea id="reqDesc" class="form-input" rows="3" placeholder="Explain what you need help with..."></textarea></div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group"><label>Preferred Date</label><input type="date" id="reqDate" class="form-input"></div>
+        <div class="form-group"><label>Preferred Time</label><input type="time" id="reqTime" class="form-input"></div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="submitLiveRequest()">Submit Request to Creator</button>
+    </div>
+  </div>
+
+  <!-- Video Player & Course Content Modal -->
+  <div class="modal-overlay" id="videoPlayerModal">
+    <div class="modal" style="max-width: 900px; width: 95%;">
+      <button class="modal-close" onclick="closeModal('videoPlayerModal')">&times;</button>
+      <h3 id="playerCourseTitle" class="section-title" style="font-size: 24px; margin-bottom: 12px;"></h3>
+      <div style="position: relative; width: 100%; background: #000; border-radius: 16px; overflow: hidden; margin-bottom: 20px;">
+        <video id="activeVideoPlayer" controls style="width: 100%; height: 450px; object-fit: contain;"></video>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h4 id="playerLessonTitle" style="font-size: 18px; margin-bottom: 4px;"></h4>
+          <p id="playerLessonDesc" style="color: var(--text-muted); font-size: 13px;"></p>
+        </div>
+        <button class="btn btn-outline btn-sm" id="btnRequestLiveFromPlayer">Request 1-on-1 Session</button>
+      </div>
+      <hr style="border-color: var(--border-glass); margin: 20px 0;">
+      <h4 style="margin-bottom: 12px;">Course Lessons</h4>
+      <div id="playerLessonsList" style="max-height: 180px; overflow-y: auto;"></div>
+    </div>
+  </div>
+
+  <!-- Edit Live Session Modal -->
+  <div class="modal-overlay" id="editLiveModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('editLiveModal')">&times;</button>
+      <h2 class="section-title" style="margin-bottom: 24px;">Edit Scheduled Live Session</h2>
+      <input type="hidden" id="editLiveId">
+      <div class="form-group"><label>Session Title *</label><input type="text" id="elTitle" class="form-input"></div>
+      <div class="form-group"><label>Topic *</label><input type="text" id="elTopic" class="form-input"></div>
+      <div class="form-group"><label>Description</label><textarea id="elDesc" class="form-input" rows="2"></textarea></div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group"><label>Date & Time</label><input type="datetime-local" id="elTime" class="form-input"></div>
+        <div class="form-group"><label>Duration (Mins)</label><input type="number" id="elDuration" class="form-input"></div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group"><label>Max Students</label><input type="number" id="elMax" class="form-input"></div>
+        <div class="form-group"><label>Price (₹)</label><input type="number" id="elPrice" class="form-input"></div>
+      </div>
+      <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 16px;">✨ Google Meet link is automatically synced with Google Calendar.</p>
+      <button class="btn btn-primary btn-full" onclick="submitEditLiveSession()">Save Session Changes</button>
+    </div>
+  </div>
+
+  <!-- View Registered Students Modal -->
+  <div class="modal-overlay" id="registeredStudentsModal">
+    <div class="modal" style="max-width: 550px;">
+      <button class="modal-close" onclick="closeModal('registeredStudentsModal')">&times;</button>
+      <h2 class="section-title" id="registeredStudentsTitle" style="margin-bottom: 8px;">Registered Students</h2>
+      <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">List of learners enrolled in this live session.</p>
+
+      <div id="registeredStudentsList" style="display: flex; flex-direction: column; gap: 10px; max-height: 50vh; overflow-y: auto; margin-bottom: 20px;"></div>
+
+      <button class="btn btn-outline btn-full" onclick="closeModal('registeredStudentsModal')">Close</button>
+    </div>
+  </div>
+
+  <!-- Add Collab Modal -->
+  <div class="modal-overlay" id="addCollabModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('addCollabModal')">&times;</button>
+      <h2 class="section-title" style="margin-bottom: 24px;">Collaboration Request</h2>
+      <div class="form-group"><label>Project Title</label><input type="text" id="colTitle" class="form-input"></div>
+      <div class="form-group"><label>Description</label><textarea id="colDesc" class="form-input" rows="3"></textarea></div>
+      <div class="form-group"><label>Skills Needed (comma separated)</label><input type="text" id="colSkills" class="form-input" placeholder="React, Python..."></div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group"><label>Members Needed</label><input type="number" id="colMembers" class="form-input" value="1"></div>
+        <div class="form-group"><label>Contact Link/Info</label><input type="text" id="colContact" class="form-input"></div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="addCollabPost()">Post Hub</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="/static/js/script.js"></script>
+</body>
+</html>

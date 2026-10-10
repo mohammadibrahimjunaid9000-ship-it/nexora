@@ -1,0 +1,31 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+.venv/
+env/
+venv/
+ENV/
+
+# Database & Storage
+*.db
+*.sqlite
+*.sqlite3
+instance/
+
+# Environment Variables
+.env
+!.env.example
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.swp
+
+# Uploads
+uploads/course_thumbnails/*
+uploads/profile_images/*
+uploads/temp/*
+!uploads/**/.gitkeep
