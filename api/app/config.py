@@ -2,9 +2,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 from pathlib import Path
 
-# Look for .env in project root or current dir
+# Look for api/.env first, then root .env
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-ENV_PATH = BASE_DIR / ".env"
+API_ENV_PATH = BASE_DIR / "api" / ".env"
+ROOT_ENV_PATH = BASE_DIR / ".env"
 
 class Settings(BaseSettings):
     APP_NAME: str = "Nexora API"
@@ -37,7 +38,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
     model_config = SettingsConfigDict(
-        env_file=str(ENV_PATH) if ENV_PATH.exists() else None,
+        env_file=str(API_ENV_PATH) if API_ENV_PATH.exists() else (str(ROOT_ENV_PATH) if ROOT_ENV_PATH.exists() else None),
         env_file_encoding="utf-8",
         extra="ignore"
     )

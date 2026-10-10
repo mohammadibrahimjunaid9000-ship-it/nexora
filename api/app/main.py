@@ -1,6 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from api.app.config import settings
+from api.app.services.supabase import get_supabase_service, SupabaseService
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -34,3 +35,10 @@ def health_check():
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION
     }
+
+@app.get("/api/v1/health/supabase")
+def supabase_health_check(
+    service: SupabaseService = Depends(get_supabase_service)
+):
+    return service.get_diagnostics()
+
