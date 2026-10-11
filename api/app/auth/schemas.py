@@ -100,3 +100,38 @@ class MessageResponse(BaseModel):
 class CurrentUserResponse(BaseModel):
     """Current authenticated user response."""
     user: UserResponse
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Payload for requesting a password reset email."""
+    email: str = Field(..., min_length=3, max_length=150, description="Account email address")
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        clean = v.strip().lower()
+        regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+        if not re.match(regex, clean):
+            raise ValueError("Please enter a valid email address.")
+        return clean
+
+
+class ResetPasswordRequest(BaseModel):
+    """Payload for completing password reset with signed token."""
+    token: str = Field(..., min_length=1, description="Password reset token")
+    new_password: str = Field(..., min_length=8, max_length=128, description="New password (8-128 chars)")
+    confirm_password: str = Field(..., min_length=8, max_length=128, description="Confirm new password")
+
+    @field_validator("token")
+    @classmethod
+    def validate_token(cls, v: str) -> str:
+        clean = v.strip()
+        if not clean:
+            raise ValueError("Reset token is required.")
+        return clean
+
+    @model_validator(mode="after")
+    def validate_passwords_match(self):
+        if self.new_password != self.confirm_password:
+            raise ValueError("Passwords do not match.")
+        return self

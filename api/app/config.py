@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "nexora_production_jwt_secret_dev_key"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    RESET_TOKEN_EXPIRE_MINUTES: int = 30  # 30 minutes for password reset tokens
 
     # Auth Cookie Configuration (HttpOnly)
     AUTH_COOKIE_NAME: str = "nexora_access_token"

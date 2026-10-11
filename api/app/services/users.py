@@ -24,13 +24,14 @@ class UserService:
     def client(self):
         return self._supabase.client
 
-    def get_by_id(self, user_id: Union[int, str]) -> Optional[Dict[str, Any]]:
-        """Fetch user by primary key ID, selecting only safe columns."""
+    def get_by_id(self, user_id: Union[int, str], include_password: bool = False) -> Optional[Dict[str, Any]]:
+        """Fetch user by primary key ID, selecting safe or auth columns."""
         if not self.client:
             raise RuntimeError("Database service is currently unavailable.")
 
+        cols = AUTH_COLUMNS if include_password else SAFE_COLUMNS
         try:
-            res = self.client.table("users").select(SAFE_COLUMNS).eq("id", user_id).limit(1).execute()
+            res = self.client.table("users").select(cols).eq("id", user_id).limit(1).execute()
             return res.data[0] if res.data else None
         except Exception as e:
             logger.error(f"Error fetching user by ID: {type(e).__name__}")
