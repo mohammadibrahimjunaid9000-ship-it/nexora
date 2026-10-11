@@ -155,6 +155,9 @@ def decode_access_token(token: str) -> Dict[str, Any]:
     if not payload.get("sub"):
         raise InvalidTokenError("Token missing subject identifier.")
 
+    if payload.get("type") != "access":
+        raise InvalidTokenError("Invalid token type.")
+
     return payload
 
 
