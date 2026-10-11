@@ -18,6 +18,22 @@ from api.app.auth.security import (
     ExpiredTokenError,
     BCRYPT_ROUNDS,
 )
+from api.app.auth.schemas import (
+    UserRole,
+    UserResponse,
+    RegisterRequest,
+    LoginRequest,
+    AuthResponse,
+    CurrentUserResponse,
+    MessageResponse,
+)
+from api.app.auth.dependencies import (
+    get_current_user,
+    RoleChecker,
+    require_learner,
+    require_creator,
+    require_admin,
+)
 
 __all__ = [
     "hash_password",
@@ -33,4 +49,16 @@ __all__ = [
     "InvalidTokenError",
     "ExpiredTokenError",
     "BCRYPT_ROUNDS",
+    "UserRole",
+    "UserResponse",
+    "RegisterRequest",
+    "LoginRequest",
+    "AuthResponse",
+    "CurrentUserResponse",
+    "MessageResponse",
+    "get_current_user",
+    "RoleChecker",
+    "require_learner",
+    "require_creator",
+    "require_admin",
 ]

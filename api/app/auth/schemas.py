@@ -3,9 +3,17 @@ Nexora API - Authentication Pydantic Schemas
 Strictly validated request and response models for Stage 2 auth flows.
 """
 
+from enum import Enum
 from typing import Optional
 import re
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+class UserRole(str, Enum):
+    """Authoritative user roles supported by the Nexora platform."""
+    LEARNER = "learner"
+    CREATOR = "creator"
+    ADMIN = "admin"
 
 
 class UserResponse(BaseModel):

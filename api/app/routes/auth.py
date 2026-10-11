@@ -5,7 +5,7 @@ Uses HttpOnly cookie-based JWT authentication and connects strictly to the exist
 """
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from api.app.auth.schemas import (
     RegisterRequest,
@@ -19,13 +19,10 @@ from api.app.auth.security import (
     hash_password,
     verify_and_maybe_migrate_password,
     create_access_token,
-    decode_access_token,
     set_auth_cookie,
     delete_auth_cookie,
-    get_token_from_request,
-    ExpiredTokenError,
-    InvalidTokenError,
 )
+from api.app.auth.dependencies import get_current_user
 from api.app.services.users import get_user_service, UserService
 
 logger = logging.getLogger("nexora.api.auth")
@@ -165,49 +162,11 @@ def logout(response: Response) -> MessageResponse:
     response_model=CurrentUserResponse,
     summary="Get current authenticated user profile"
 )
-def get_current_user(
-    request: Request,
-    user_service: UserService = Depends(get_user_service)
+def get_current_user_profile(
+    current_user: UserResponse = Depends(get_current_user)
 ) -> CurrentUserResponse:
     """
-    Retrieves the current authenticated user from the HttpOnly cookie.
-    Validates the JWT token and queries the authoritative Supabase database.
+    Retrieves the current authenticated user profile.
+    Uses the canonical get_current_user dependency to validate credentials and fetch authoritative data.
     """
-    # 1. Extract token strictly from HttpOnly cookie
-    token = get_token_from_request(request)
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required."
-        )
-
-    # 2. Decode and validate JWT token
-    try:
-        payload = decode_access_token(token)
-    except ExpiredTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication token has expired."
-        )
-    except InvalidTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication token."
-        )
-
-    user_id = payload.get("sub")
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication token."
-        )
-
-    # 3. Query authoritative database for current user information
-    user = user_service.get_by_id(user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User account no longer exists."
-        )
-
-    return CurrentUserResponse(user=UserResponse(**user))
+    return CurrentUserResponse(user=current_user)
