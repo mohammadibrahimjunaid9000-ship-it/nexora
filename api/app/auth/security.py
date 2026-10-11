@@ -64,6 +64,37 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
+def verify_and_maybe_migrate_password(password: str, stored_hash: Optional[str]) -> tuple[bool, Optional[str]]:
+    """
+    Verifies a password against the stored hash.
+    1. If the stored password is a bcrypt hash, verifies with bcrypt (returns True, None).
+    2. If the stored password is a legacy Werkzeug hash (pbkdf2:..., scrypt:...),
+       verifies using Werkzeug's check_password_hash.
+       If valid, generates a new bcrypt hash with cost factor 12 (returns True, new_bcrypt_hash).
+    3. If invalid or stored_hash is None/empty, returns (False, None).
+    """
+    if not password or not stored_hash or not isinstance(password, str) or not isinstance(stored_hash, str):
+        return False, None
+
+    # Standard bcrypt format check ($2b$, $2a$, $2y$)
+    if stored_hash.startswith("$2b$") or stored_hash.startswith("$2a$") or stored_hash.startswith("$2y$"):
+        if verify_password(password, stored_hash):
+            return True, None
+        return False, None
+
+    # Legacy Werkzeug hash check (pbkdf2:..., scrypt:...)
+    try:
+        from werkzeug.security import check_password_hash
+        if check_password_hash(stored_hash, password):
+            new_hash = hash_password(password)
+            return True, new_hash
+    except Exception:
+        pass
+
+    return False, None
+
+
+
 # ─── JWT Security (PyJWT) ──────────────────────────────────────────────────────
 
 def create_access_token(

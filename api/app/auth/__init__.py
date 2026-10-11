@@ -6,6 +6,7 @@ Stage 1: Backend Security Foundation
 from api.app.auth.security import (
     hash_password,
     verify_password,
+    verify_and_maybe_migrate_password,
     create_access_token,
     decode_access_token,
     get_auth_cookie_config,
@@ -21,6 +22,7 @@ from api.app.auth.security import (
 __all__ = [
     "hash_password",
     "verify_password",
+    "verify_and_maybe_migrate_password",
     "create_access_token",
     "decode_access_token",
     "get_auth_cookie_config",
