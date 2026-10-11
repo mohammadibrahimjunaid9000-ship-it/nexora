@@ -7,6 +7,8 @@ and HttpOnly authentication cookie configuration.
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, Union
 import logging
+import hmac
+import hashlib
 import bcrypt
 import jwt
 from fastapi import Request, Response
@@ -157,6 +159,99 @@ def decode_access_token(token: str) -> Dict[str, Any]:
 
     if payload.get("type") != "access":
         raise InvalidTokenError("Invalid token type.")
+
+    return payload
+
+
+# ─── Password Reset Token Security ────────────────────────────────────────────
+
+def generate_password_hash_fingerprint(password_hash: str) -> str:
+    """
+    Derives a secure HMAC-SHA256 fingerprint from the user's current password hash
+    and the server SECRET_KEY.
+    Used to invalidate reset tokens statelessly once the password changes.
+    Never exposes the raw password hash.
+    """
+    if not password_hash or not isinstance(password_hash, str):
+        raise ValueError("A valid password hash is required to compute fingerprint.")
+    h = hmac.new(
+        settings.SECRET_KEY.encode("utf-8"),
+        password_hash.encode("utf-8"),
+        hashlib.sha256
+    )
+    return h.hexdigest()
+
+
+def create_password_reset_token(
+    user_id: Union[int, str],
+    email: str,
+    current_password_hash: str,
+    expires_delta: Optional[timedelta] = None
+) -> str:
+    """
+    Creates a signed JWT password reset token with short expiration.
+    Payload contains sub, email, fingerprint (derived from current password hash),
+    type='reset', iat, and exp.
+    """
+    if not user_id:
+        raise ValueError("user_id is required to create a reset token.")
+    if not email or not isinstance(email, str):
+        raise ValueError("email is required to create a reset token.")
+    if not current_password_hash:
+        raise ValueError("current_password_hash is required to create a reset token.")
+
+    now = datetime.now(timezone.utc)
+    delta = expires_delta if expires_delta is not None else timedelta(minutes=settings.RESET_TOKEN_EXPIRE_MINUTES)
+    expire = now + delta
+    fingerprint = generate_password_hash_fingerprint(current_password_hash)
+
+    payload: Dict[str, Any] = {
+        "sub": str(user_id),
+        "email": email.strip().lower(),
+        "fingerprint": fingerprint,
+        "iat": int(now.timestamp()),
+        "exp": int(expire.timestamp()),
+        "type": "reset"
+    }
+
+    token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return token
+
+
+def decode_password_reset_token(token: str) -> Dict[str, Any]:
+    """
+    Decodes and verifies a JWT password reset token.
+    Enforces signature validation, algorithm restriction, expiration check,
+    and requires type == 'reset', sub, email, and fingerprint.
+    Fails safely with custom exceptions without leaking internal details.
+    """
+    if not token or not isinstance(token, str):
+        raise InvalidTokenError("Reset token is required.")
+
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+            options={"verify_exp": True}
+        )
+    except jwt.ExpiredSignatureError:
+        raise ExpiredTokenError("Password reset token has expired.")
+    except (jwt.InvalidTokenError, jwt.PyJWTError, Exception) as exc:
+        logger.debug(f"Reset token decode failure: {type(exc).__name__}")
+        raise InvalidTokenError("Invalid password reset token.")
+
+    if not payload.get("sub"):
+        raise InvalidTokenError("Reset token missing subject identifier.")
+
+    if not payload.get("email"):
+        raise InvalidTokenError("Reset token missing email.")
+
+    if not payload.get("fingerprint"):
+        raise InvalidTokenError("Reset token missing fingerprint.")
+
+    if payload.get("type") != "reset":
+        raise InvalidTokenError("Invalid token type for password reset.")
 
     return payload
 
