@@ -135,3 +135,33 @@ class ResetPasswordRequest(BaseModel):
         if self.new_password != self.confirm_password:
             raise ValueError("Passwords do not match.")
         return self
+
+
+class SetRoleRequest(BaseModel):
+    """Payload for onboarding role selection."""
+    role: str = Field(..., description="Role selection: 'learner' or 'creator'")
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, v: str) -> str:
+        clean = v.strip().lower()
+        if clean == "admin":
+            raise ValueError("Admin role cannot be self-assigned.")
+        if clean not in ("learner", "creator"):
+            raise ValueError("Role must be either 'learner' or 'creator'.")
+        return clean
+
+
+class ChangePasswordRequest(BaseModel):
+    """Payload for authenticated password rotation."""
+    current_password: str = Field(..., min_length=1, description="Current password")
+    new_password: str = Field(..., min_length=8, max_length=128, description="New password (8-128 chars)")
+    confirm_password: str = Field(..., min_length=1, max_length=128, description="Confirm new password")
+
+    @model_validator(mode="after")
+    def validate_passwords(self):
+        if self.new_password != self.confirm_password:
+            raise ValueError("New passwords do not match.")
+        if self.current_password == self.new_password:
+            raise ValueError("New password must be different from current password.")
+        return self

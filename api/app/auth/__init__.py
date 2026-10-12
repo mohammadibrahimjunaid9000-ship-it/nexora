@@ -31,6 +31,8 @@ from api.app.auth.schemas import (
     MessageResponse,
     ForgotPasswordRequest,
     ResetPasswordRequest,
+    SetRoleRequest,
+    ChangePasswordRequest,
 )
 from api.app.auth.dependencies import (
     get_current_user,
@@ -66,6 +68,8 @@ __all__ = [
     "MessageResponse",
     "ForgotPasswordRequest",
     "ResetPasswordRequest",
+    "SetRoleRequest",
+    "ChangePasswordRequest",
     "get_current_user",
     "RoleChecker",
     "require_learner",
