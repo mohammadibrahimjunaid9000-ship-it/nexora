@@ -117,6 +117,20 @@ class UserService:
             logger.error(f"Error updating user password: {type(e).__name__}")
             raise
 
+    def update_role(self, user_id: Union[int, str], new_role: str) -> Optional[Dict[str, Any]]:
+        """Update only the role column for a specific user and return safe user record."""
+        if not self.client:
+            raise RuntimeError("Database service is currently unavailable.")
+
+        try:
+            res = self.client.table("users").update({"role": new_role}).eq("id", user_id).execute()
+            if not res.data:
+                return None
+            return self.get_by_id(user_id)
+        except Exception as e:
+            logger.error(f"Error updating user role: {type(e).__name__}")
+            raise
+
 
 # Singleton accessor
 _user_service_instance: Optional[UserService] = None

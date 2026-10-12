@@ -17,6 +17,8 @@ from api.app.auth.schemas import (
     UserResponse,
     ForgotPasswordRequest,
     ResetPasswordRequest,
+    SetRoleRequest,
+    ChangePasswordRequest,
 )
 from api.app.auth.security import (
     hash_password,
@@ -305,4 +307,162 @@ def reset_password(
 
     return MessageResponse(
         message="Password reset successfully. You can now log in with your new password."
+    )
+
+
+@router.post(
+    "/set-role",
+    status_code=status.HTTP_200_OK,
+    response_model=AuthResponse,
+    summary="Set initial onboarding role for user"
+)
+def set_role(
+    payload: SetRoleRequest,
+    response: Response,
+    current_user: UserResponse = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service)
+) -> AuthResponse:
+    """
+    Onboarding role assignment endpoint.
+    A user may only call /set-role if their CURRENT database role is NULL/unassigned.
+    Allowed initial roles: 'learner' or 'creator'. Admin can NEVER be self-assigned.
+    The database's current role is authoritative.
+    Updates only users.role, reissues a fresh access token with the updated role claim,
+    and sets the HttpOnly cookie.
+    """
+    # 1. Authoritative check: fetch user from database
+    try:
+        db_user = user_service.get_by_id(current_user.id)
+    except Exception as e:
+        logger.error(f"Database error during set-role lookup: {type(e).__name__}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database service is currently unavailable."
+        )
+
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account no longer exists."
+        )
+
+    # 2. Strict onboarding rule: current database role must be NULL / unassigned
+    if db_user.get("role"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Role has already been assigned. Role cannot be changed once set."
+        )
+
+    # 3. Update only the role column
+    try:
+        updated_user = user_service.update_role(current_user.id, payload.role)
+        if not updated_user:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Failed to update user role."
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Database error updating user role: {type(e).__name__}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database service is currently unavailable."
+        )
+
+    # 4. Issue a fresh access JWT containing the updated role claim and set HttpOnly cookie
+    token = create_access_token(
+        user_id=updated_user["id"],
+        email=updated_user["email"],
+        role=updated_user.get("role")
+    )
+    set_auth_cookie(response, token)
+
+    return AuthResponse(
+        message=f"Role set to {payload.role} successfully.",
+        user=UserResponse(**updated_user)
+    )
+
+
+@router.post(
+    "/change-password",
+    status_code=status.HTTP_200_OK,
+    response_model=MessageResponse,
+    summary="Change password for authenticated user"
+)
+def change_password(
+    payload: ChangePasswordRequest,
+    response: Response,
+    current_user: UserResponse = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service)
+) -> MessageResponse:
+    """
+    Authenticated password rotation endpoint.
+    Verifies current_password (supports legacy Werkzeug migration), hashes new_password with bcrypt cost 12,
+    updates only users.password, and issues a fresh HttpOnly access token.
+    Automatically invalidates any outstanding Stage 4 password reset tokens via fingerprint mechanism.
+    Accounts with NULL password (Google-only) are rejected.
+    """
+    # 1. Fetch authoritative user including password hash
+    try:
+        db_user = user_service.get_by_id(current_user.id, include_password=True)
+    except Exception as e:
+        logger.error(f"Database error during change-password lookup: {type(e).__name__}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database service is currently unavailable."
+        )
+
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account no longer exists."
+        )
+
+    # 2. Reject Google-only accounts (NULL password)
+    stored_password = db_user.get("password")
+    if not stored_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This account does not have a password configured. Please authenticate using your configured external login method."
+        )
+
+    # 3. Verify current password
+    is_valid, _ = verify_and_maybe_migrate_password(payload.current_password, stored_password)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect."
+        )
+
+    # 4. Hash new password with bcrypt cost factor 12
+    new_password_hash = hash_password(payload.new_password)
+
+    # 5. Update only users.password
+    try:
+        updated = user_service.update_password(current_user.id, new_password_hash)
+        if not updated:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Failed to update password."
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Database error updating password: {type(e).__name__}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database service is currently unavailable."
+        )
+
+    # 6. Issue a fresh access token and set HttpOnly cookie
+    token = create_access_token(
+        user_id=db_user["id"],
+        email=db_user["email"],
+        role=db_user.get("role")
+    )
+    set_auth_cookie(response, token)
+
+    return MessageResponse(
+        message="Password changed successfully."
     )
