@@ -310,3 +310,39 @@ def get_token_from_request(request: Request) -> Optional[str]:
     Does not read from localStorage or JavaScript-accessible mechanisms.
     """
     return request.cookies.get(settings.AUTH_COOKIE_NAME)
+
+
+def set_oauth_state_cookie(response: Response, state_nonce: str) -> None:
+    """
+    Sets a short-lived HttpOnly anti-CSRF state binding cookie on the response.
+    Inaccessible to frontend JavaScript.
+    """
+    response.set_cookie(
+        key=settings.GOOGLE_OAUTH_STATE_COOKIE_NAME,
+        value=state_nonce,
+        max_age=settings.GOOGLE_OAUTH_STATE_EXPIRE_MINUTES * 60,
+        httponly=True,
+        secure=settings.AUTH_COOKIE_SECURE,
+        samesite="lax",
+        path="/",
+    )
+
+
+def delete_oauth_state_cookie(response: Response) -> None:
+    """
+    Clears the OAuth state cookie upon verification or completion.
+    """
+    response.delete_cookie(
+        key=settings.GOOGLE_OAUTH_STATE_COOKIE_NAME,
+        path="/",
+        samesite="lax",
+        secure=settings.AUTH_COOKIE_SECURE,
+        httponly=True,
+    )
+
+
+def get_oauth_state_from_request(request: Request) -> Optional[str]:
+    """
+    Extracts the OAuth state nonce strictly from the HttpOnly cookie.
+    """
+    return request.cookies.get(settings.GOOGLE_OAUTH_STATE_COOKIE_NAME)

@@ -165,3 +165,17 @@ class ChangePasswordRequest(BaseModel):
         if self.current_password == self.new_password:
             raise ValueError("New password must be different from current password.")
         return self
+
+
+class GoogleAuthUrlResponse(BaseModel):
+    """Response containing generated Google OAuth authorization URL."""
+    url: str = Field(..., description="Google OAuth 2.0 authorization URL")
+
+
+class GoogleIdentity(BaseModel):
+    """Validated Google user identity model."""
+    sub: str = Field(..., description="Google unique subject ID")
+    email: str = Field(..., description="Verified Google email address")
+    email_verified: bool = Field(True, description="Google email verification status")
+    name: Optional[str] = Field(None, description="Display name from Google")
+    picture: Optional[str] = Field(None, description="Avatar image URL from Google")

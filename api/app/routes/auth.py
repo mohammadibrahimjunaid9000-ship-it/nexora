@@ -6,7 +6,10 @@ Uses HttpOnly cookie-based JWT authentication and connects strictly to the exist
 
 import hmac
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import RedirectResponse
+from api.app.config import settings
 
 from api.app.auth.schemas import (
     RegisterRequest,
@@ -19,6 +22,7 @@ from api.app.auth.schemas import (
     ResetPasswordRequest,
     SetRoleRequest,
     ChangePasswordRequest,
+    GoogleAuthUrlResponse,
 )
 from api.app.auth.security import (
     hash_password,
@@ -31,10 +35,25 @@ from api.app.auth.security import (
     decode_password_reset_token,
     InvalidTokenError,
     ExpiredTokenError,
+    set_oauth_state_cookie,
+    delete_oauth_state_cookie,
+    get_oauth_state_from_request,
 )
 from api.app.auth.dependencies import get_current_user
 from api.app.services.users import get_user_service, UserService
 from api.app.services.email import get_email_service, EmailService
+from api.app.services.google_auth import (
+    get_google_auth_service,
+    GoogleAuthService,
+    GoogleAuthError,
+    GoogleAuthConfigurationError,
+    InvalidStateError,
+    ExpiredStateError,
+    InvalidCodeError,
+    InvalidIdTokenError,
+    ExpiredIdTokenError,
+    UnverifiedEmailError,
+)
 
 logger = logging.getLogger("nexora.api.auth")
 
@@ -466,3 +485,180 @@ def change_password(
     return MessageResponse(
         message="Password changed successfully."
     )
+
+
+@router.get(
+    "/google/url",
+    status_code=status.HTTP_200_OK,
+    response_model=GoogleAuthUrlResponse,
+    summary="Get Google OAuth authorization URL"
+)
+def get_google_auth_url(
+    response: Response,
+    redirect_to: Optional[str] = None,
+    google_service: GoogleAuthService = Depends(get_google_auth_service)
+) -> GoogleAuthUrlResponse:
+    """
+    Generates a secure Google OAuth 2.0 authorization URL with anti-CSRF state.
+    Sets HttpOnly state cookie on the response.
+    Never exposes client secret or credentials.
+    """
+    try:
+        signed_state, state_nonce = google_service.generate_state(redirect_target=redirect_to)
+        set_oauth_state_cookie(response, state_nonce)
+        auth_url = google_service.get_authorization_url(state=signed_state)
+        return GoogleAuthUrlResponse(url=auth_url)
+    except GoogleAuthConfigurationError as e:
+        logger.error(f"Google OAuth configuration error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Google OAuth is not configured on this server."
+        )
+
+
+@router.get(
+    "/google/callback",
+    status_code=status.HTTP_302_FOUND,
+    response_class=RedirectResponse,
+    summary="Google OAuth 2.0 callback endpoint"
+)
+def google_auth_callback(
+    request: Request,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+    google_service: GoogleAuthService = Depends(get_google_auth_service),
+    user_service: UserService = Depends(get_user_service),
+) -> RedirectResponse:
+    """
+    Google OAuth 2.0 callback endpoint.
+    1. Validates absence of Google OAuth errors.
+    2. Validates code, state, and cookie state binding (anti-CSRF).
+    3. Verifies state signature, expiration, and extracts trusted redirect target.
+    4. Exchanges authorization code for tokens (single-use code).
+    5. Validates Google ID token cryptographically (RS256, aud, iss, exp, verified email).
+    6. Resolves or creates user via UserService.
+    7. Issues standard HttpOnly nexora_access_token cookie.
+    8. Deletes the nexora_oauth_state cookie.
+    9. Redirects 302 to frontend origin + safe redirect path.
+    """
+    # 1. Handle error reported by Google (e.g. user canceled consent)
+    if error:
+        logger.warning(f"Google OAuth error received in callback: {error}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Google authentication error: {error}"
+        )
+
+    # 2. Check for required code and state parameters
+    if not code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing authorization code."
+        )
+
+    if not state:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing OAuth state parameter."
+        )
+
+    # 3. Retrieve and validate state cookie binding
+    cookie_nonce = get_oauth_state_from_request(request)
+    if not cookie_nonce:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing OAuth state cookie."
+        )
+
+    try:
+        state_payload = google_service.verify_state(state=state, cookie_nonce=cookie_nonce)
+    except ExpiredStateError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OAuth state has expired. Please initiate sign-in again."
+        )
+    except InvalidStateError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid OAuth state or session mismatch."
+        )
+
+    safe_redirect = state_payload.get("redirect", "/dashboard")
+
+    # 4. Exchange authorization code with Google
+    try:
+        tokens = google_service.exchange_code(code)
+    except InvalidCodeError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired authorization code."
+        )
+    except GoogleAuthConfigurationError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Google OAuth is not configured on this server."
+        )
+    except GoogleAuthError:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to communicate with Google authentication server."
+        )
+
+    # 5. Cryptographically validate Google ID token
+    try:
+        identity = google_service.validate_id_token(tokens["id_token"])
+    except ExpiredIdTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google ID token has expired."
+        )
+    except UnverifiedEmailError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google account email is not verified."
+        )
+    except InvalidIdTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google ID token validation failed."
+        )
+
+    # 6. Resolve or create user in Supabase
+    try:
+        user = user_service.resolve_google_account(
+            email=identity.email,
+            name=identity.name
+        )
+    except RuntimeError as e:
+        logger.error(f"Database unavailable during Google resolution: {type(e).__name__}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database service is currently unavailable."
+        )
+    except Exception as e:
+        logger.error(f"Database error during Google resolution: {type(e).__name__}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database service is currently unavailable."
+        )
+
+    # 7. Issue standard Nexora access JWT
+    access_token = create_access_token(
+        user_id=user["id"],
+        email=user["email"],
+        role=user.get("role")
+    )
+
+    # 8. Build safe frontend redirect URL
+    frontend_base = settings.FRONTEND_URL.rstrip("/")
+    if not safe_redirect.startswith("/"):
+        safe_redirect = "/" + safe_redirect
+    target_url = f"{frontend_base}{safe_redirect}"
+
+    # 9. Create RedirectResponse, attach access cookie, and delete OAuth state cookie
+    redirect_response = RedirectResponse(url=target_url, status_code=status.HTTP_302_FOUND)
+    set_auth_cookie(redirect_response, access_token)
+    delete_oauth_state_cookie(redirect_response)
+
+    return redirect_response
