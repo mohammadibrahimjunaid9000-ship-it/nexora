@@ -12,6 +12,7 @@ logger = logging.getLogger("nexora.api.users")
 
 SAFE_COLUMNS = "id,name,email,role,points,joined_at"
 AUTH_COLUMNS = "id,name,email,password,role,points,joined_at"
+PUBLIC_COLUMNS = "id,name,role"
 
 
 class UserService:
@@ -190,6 +191,61 @@ class UserService:
                 if existing:
                     return existing
             logger.error(f"Error creating Google user: {type(e).__name__}")
+            raise
+
+    def update_name(self, user_id: Union[int, str], name: str) -> Optional[Dict[str, Any]]:
+        """
+        Safely update ONLY the name column for a specific user ID.
+        Invariants:
+        - Accepts only user_id and cleaned name.
+        - Trims whitespace and validates length (2-150 chars) at the service boundary.
+        - Updates strictly {"name": clean_name}.
+        - Filters strictly by id = user_id.
+        - Never mutates email, password, role, points, or joined_at.
+        - Returns safe authoritative user record (SAFE_COLUMNS), or None if user not found.
+        """
+        if not user_id:
+            raise ValueError("user_id is required to update name.")
+
+        if name is None or not isinstance(name, str):
+            raise ValueError("name must be a valid string.")
+
+        clean_name = name.strip()
+        if len(clean_name) < 2:
+            raise ValueError("Name must be at least 2 characters long.")
+        if len(clean_name) > 150:
+            raise ValueError("Name must not exceed 150 characters.")
+
+        if not self.client:
+            raise RuntimeError("Database service is currently unavailable.")
+
+        try:
+            res = self.client.table("users").update({"name": clean_name}).eq("id", user_id).execute()
+            if not res.data:
+                return None
+            return self.get_by_id(user_id)
+        except Exception as e:
+            logger.error(f"Error updating user name: {type(e).__name__}")
+            raise
+
+    def get_public_profile(self, user_id: Union[int, str]) -> Optional[Dict[str, Any]]:
+        """
+        Fetch minimal non-sensitive public user profile (id, name, role).
+        Strictly queries only PUBLIC_COLUMNS ("id,name,role").
+        Never queries or exposes password, email, points, or joined_at.
+        Returns normalized dictionary or None if user not found.
+        """
+        if not user_id:
+            return None
+
+        if not self.client:
+            raise RuntimeError("Database service is currently unavailable.")
+
+        try:
+            res = self.client.table("users").select(PUBLIC_COLUMNS).eq("id", user_id).limit(1).execute()
+            return res.data[0] if res.data else None
+        except Exception as e:
+            logger.error(f"Error fetching public user profile: {type(e).__name__}")
             raise
 
 
