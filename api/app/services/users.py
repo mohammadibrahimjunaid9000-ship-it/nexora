@@ -131,6 +131,67 @@ class UserService:
             logger.error(f"Error updating user role: {type(e).__name__}")
             raise
 
+    def resolve_google_account(self, email: str, name: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Resolves or creates a Nexora user from a verified Google email.
+        Invariants:
+        - Email is stripped and lowercased.
+        - If user exists by email, returns the authoritative user (preserving id, name, email, password, role, points, joined_at).
+        - If user does not exist, inserts a new user with:
+            name: provided Google name or fallback to email local part
+            email: normalized email
+            password: None
+            role: None
+            points: 0
+        - Safely handles concurrent account creation race where a simultaneous insert triggers a unique email constraint violation.
+        - Returns safe user dict (never exposing password hash).
+        """
+        if not self.client:
+            raise RuntimeError("Database service is currently unavailable.")
+
+        clean_email = email.strip().lower()
+
+        # 1. Authoritative lookup of existing user
+        try:
+            existing = self.get_by_email(clean_email)
+            if existing:
+                return existing
+        except Exception as e:
+            logger.error(f"Error querying user by email during Google resolution: {type(e).__name__}")
+            raise
+
+        # 2. Determine safe display name
+        clean_name = (name or "").strip()
+        if not clean_name:
+            clean_name = clean_email.split("@")[0].replace(".", " ").title() or "Nexora User"
+
+        payload = {
+            "name": clean_name[:150],
+            "email": clean_email,
+            "password": None,
+            "role": None,
+            "points": 0
+        }
+
+        # 3. Insert new Google user row
+        try:
+            res = self.client.table("users").insert(payload).execute()
+            if not res.data:
+                raise RuntimeError("Failed to insert Google user into database.")
+            user = res.data[0]
+            user.pop("password", None)
+            return user
+        except Exception as e:
+            err_str = str(e).lower()
+            # 4. Handle concurrent account-creation race condition (unique constraint on email)
+            if "unique" in err_str or "duplicate" in err_str or "23505" in err_str:
+                logger.info(f"Unique email constraint triggered during concurrent Google signup for {clean_email}. Fetching existing record.")
+                existing = self.get_by_email(clean_email)
+                if existing:
+                    return existing
+            logger.error(f"Error creating Google user: {type(e).__name__}")
+            raise
+
 
 # Singleton accessor
 _user_service_instance: Optional[UserService] = None

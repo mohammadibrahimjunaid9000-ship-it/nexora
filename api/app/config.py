@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: Optional[str] = None
     GOOGLE_CLIENT_SECRET: Optional[str] = None
     GOOGLE_REDIRECT_URI: Optional[str] = None
+    GOOGLE_OAUTH_STATE_COOKIE_NAME: str = "nexora_oauth_state"
+    GOOGLE_OAUTH_STATE_EXPIRE_MINUTES: int = 10
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
