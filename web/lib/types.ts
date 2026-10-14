@@ -11,3 +11,16 @@ export interface HealthCheckResponse {
   service: string;
   version: string;
 }
+
+export interface UserProfileResponse {
+  id: number;
+  name: string;
+  email: string;
+  role: string | null;
+  points: number;
+  joined_at: string | null;
+}
+
+export interface UpdateProfileRequest {
+  name: string;
+}
