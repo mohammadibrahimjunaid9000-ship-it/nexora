@@ -127,7 +127,10 @@ export default function ProfilePage() {
       {/* Sub-navigation & Back to Home */}
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-6 flex items-center justify-between text-sm">
         <nav aria-label="Breadcrumb navigation" className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-          <Link href="/" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+          <Link
+            href="/"
+            className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
+          >
             Home
           </Link>
           <span className="text-zinc-300 dark:text-zinc-700">/</span>
@@ -135,7 +138,7 @@ export default function ProfilePage() {
         </nav>
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
           aria-label="Return to the main Nexora experience"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
