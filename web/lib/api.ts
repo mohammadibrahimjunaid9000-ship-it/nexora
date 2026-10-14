@@ -1,4 +1,4 @@
-import type { UserProfileResponse, UpdateProfileRequest } from './types';
+import type { UserProfileResponse, UpdateProfileRequest, PublicUserProfile } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -64,5 +64,18 @@ export async function updateAuthenticatedProfileName(
   return fetchApi<UserProfileResponse>('/api/v1/users/me', {
     method: 'PUT',
     body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Fetch public profile of a user by their numeric identifier.
+ * Unauthenticated endpoint; strictly validates userId > 0 and integer.
+ */
+export async function getPublicUserProfile(userId: number): Promise<PublicUserProfile> {
+  if (typeof userId !== 'number' || !Number.isInteger(userId) || userId <= 0) {
+    throw new Error('User ID must be a positive integer.');
+  }
+  return fetchApi<PublicUserProfile>(`/api/v1/users/${userId}`, {
+    method: 'GET',
   });
 }

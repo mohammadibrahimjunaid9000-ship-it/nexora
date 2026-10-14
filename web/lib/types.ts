@@ -24,3 +24,9 @@ export interface UserProfileResponse {
 export interface UpdateProfileRequest {
   name: string;
 }
+
+export interface PublicUserProfile {
+  id: number;
+  name: string;
+  role: 'learner' | 'creator' | 'admin';
+}
