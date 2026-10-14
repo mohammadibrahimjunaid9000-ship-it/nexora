@@ -43,7 +43,7 @@ export function UserProfileLink({
       href={href}
       className={
         className ||
-        'inline-flex items-center gap-1.5 font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded'
+        'inline-flex items-center gap-1.5 font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded'
       }
       aria-label={ariaLabel || defaultLabel}
     >

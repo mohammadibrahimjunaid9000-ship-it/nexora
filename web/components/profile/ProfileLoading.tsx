@@ -4,7 +4,13 @@ import React from 'react';
 
 export function ProfileLoading() {
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 py-8 animate-pulse" data-testid="profile-loading">
+    <div
+      role="status"
+      aria-live="polite"
+      className="w-full max-w-2xl mx-auto px-4 py-8 animate-pulse"
+      data-testid="profile-loading"
+    >
+      <span className="sr-only">Loading your profile details...</span>
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 shadow-sm">
         {/* Top Avatar Skeleton */}
         <div className="flex flex-col items-center">

@@ -123,7 +123,10 @@ function PublicProfileContent({ params }: PageProps) {
       {/* Sub-navigation */}
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-6 flex items-center justify-between text-sm">
         <nav aria-label="Breadcrumb navigation" className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-          <Link href="/" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+          <Link
+            href="/"
+            className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
+          >
             Home
           </Link>
           <span className="text-zinc-300 dark:text-zinc-700">/</span>
@@ -136,7 +139,7 @@ function PublicProfileContent({ params }: PageProps) {
         <button
           type="button"
           onClick={handleGoBack}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
           aria-label="Go back to previous screen"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -150,7 +153,13 @@ function PublicProfileContent({ params }: PageProps) {
       <main className="flex-1 flex flex-col items-center justify-center py-8 sm:py-12 px-4">
         {/* Loading State */}
         {viewState.type === 'loading' && (
-          <div className="w-full max-w-xl mx-auto px-4 py-8 animate-pulse" data-testid="public-profile-loading">
+          <div
+            role="status"
+            aria-live="polite"
+            className="w-full max-w-xl mx-auto px-4 py-8 animate-pulse"
+            data-testid="public-profile-loading"
+          >
+            <span className="sr-only">Loading public profile...</span>
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 shadow-sm text-center">
               <div className="mx-auto w-24 h-24 rounded-full bg-zinc-200 dark:bg-zinc-800 ring-4 ring-zinc-100 dark:ring-zinc-800/50" />
               <div className="h-6 w-40 bg-zinc-200 dark:bg-zinc-800 rounded-lg mx-auto mt-5" />
@@ -162,7 +171,12 @@ function PublicProfileContent({ params }: PageProps) {
 
         {/* Invalid ID State */}
         {viewState.type === 'invalid_id' && (
-          <div className="w-full max-w-md mx-auto px-4 py-12 text-center" data-testid="public-profile-invalid">
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="w-full max-w-md mx-auto px-4 py-12 text-center"
+            data-testid="public-profile-invalid"
+          >
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 shadow-sm">
               <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-900/40 mb-5">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,7 +198,7 @@ function PublicProfileContent({ params }: PageProps) {
                 <button
                   type="button"
                   onClick={handleGoBack}
-                  className="px-6 py-2.5 rounded-xl text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2"
+                  className="px-6 py-2.5 rounded-xl text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-zinc-900 dark:focus-visible:ring-zinc-100"
                 >
                   Go Back
                 </button>
@@ -195,7 +209,12 @@ function PublicProfileContent({ params }: PageProps) {
 
         {/* 404 User Not Found State */}
         {viewState.type === 'not_found' && (
-          <div className="w-full max-w-md mx-auto px-4 py-12 text-center" data-testid="public-profile-not-found">
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="w-full max-w-md mx-auto px-4 py-12 text-center"
+            data-testid="public-profile-not-found"
+          >
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 shadow-sm">
               <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60 mb-5">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,7 +236,7 @@ function PublicProfileContent({ params }: PageProps) {
                 <button
                   type="button"
                   onClick={handleGoBack}
-                  className="px-6 py-2.5 rounded-xl text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2"
+                  className="px-6 py-2.5 rounded-xl text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-zinc-900 dark:focus-visible:ring-zinc-100"
                 >
                   Go Back
                 </button>
@@ -228,7 +247,12 @@ function PublicProfileContent({ params }: PageProps) {
 
         {/* 503 Service Unavailable State */}
         {viewState.type === 'service_unavailable' && (
-          <div className="w-full max-w-md mx-auto px-4 py-12 text-center" data-testid="public-profile-503">
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="w-full max-w-md mx-auto px-4 py-12 text-center"
+            data-testid="public-profile-503"
+          >
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 shadow-sm">
               <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-900/40 mb-5">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,14 +275,15 @@ function PublicProfileContent({ params }: PageProps) {
                   type="button"
                   onClick={handleRetry}
                   disabled={isRetrying}
-                  className="px-5 py-2.5 rounded-xl text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2"
+                  aria-busy={isRetrying}
+                  className="px-5 py-2.5 rounded-xl text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-zinc-900 dark:focus-visible:ring-zinc-100"
                 >
                   {isRetrying ? 'Retrying...' : 'Retry'}
                 </button>
                 <button
                   type="button"
                   onClick={handleGoBack}
-                  className="px-5 py-2.5 rounded-xl text-sm font-medium border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 bg-transparent hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-400"
+                  className="px-5 py-2.5 rounded-xl text-sm font-medium border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 bg-transparent hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-zinc-400"
                 >
                   Go Back
                 </button>
@@ -269,7 +294,12 @@ function PublicProfileContent({ params }: PageProps) {
 
         {/* Network / Connection Error State */}
         {viewState.type === 'network_error' && (
-          <div className="w-full max-w-md mx-auto px-4 py-12 text-center" data-testid="public-profile-error">
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="w-full max-w-md mx-auto px-4 py-12 text-center"
+            data-testid="public-profile-error"
+          >
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 shadow-sm">
               <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200/60 dark:border-red-900/40 mb-5">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -292,14 +322,15 @@ function PublicProfileContent({ params }: PageProps) {
                   type="button"
                   onClick={handleRetry}
                   disabled={isRetrying}
-                  className="px-5 py-2.5 rounded-xl text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2"
+                  aria-busy={isRetrying}
+                  className="px-5 py-2.5 rounded-xl text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-zinc-900 dark:focus-visible:ring-zinc-100"
                 >
                   {isRetrying ? 'Retrying...' : 'Retry'}
                 </button>
                 <button
                   type="button"
                   onClick={handleGoBack}
-                  className="px-5 py-2.5 rounded-xl text-sm font-medium border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 bg-transparent hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-400"
+                  className="px-5 py-2.5 rounded-xl text-sm font-medium border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 bg-transparent hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-zinc-400"
                 >
                   Go Back
                 </button>
@@ -316,7 +347,7 @@ function PublicProfileContent({ params }: PageProps) {
               <button
                 type="button"
                 onClick={handleGoBack}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-400"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-zinc-400"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -340,7 +371,12 @@ function PublicProfileContent({ params }: PageProps) {
 
 function PublicProfileLoadingShell() {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center py-8 sm:py-12 px-4">
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex-1 flex flex-col items-center justify-center py-8 sm:py-12 px-4"
+    >
+      <span className="sr-only">Loading member profile...</span>
       <div className="w-full max-w-xl mx-auto px-4 py-8 animate-pulse">
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 shadow-sm text-center">
           <div className="mx-auto w-24 h-24 rounded-full bg-zinc-200 dark:bg-zinc-800 ring-4 ring-zinc-100 dark:ring-zinc-800/50" />

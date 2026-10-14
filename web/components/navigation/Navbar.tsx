@@ -8,7 +8,7 @@ export function Navbar() {
         {/* Nexora Brand Logo & Name */}
         <Link
           href="/"
-          className="flex items-center gap-2.5 group transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg p-1"
+          className="flex items-center gap-2.5 group transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg p-1"
           aria-label="Nexora Home"
         >
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-base shadow-sm">
@@ -23,14 +23,14 @@ export function Navbar() {
         <nav aria-label="Main Navigation" className="flex items-center gap-1 sm:gap-2">
           <Link
             href="/"
-            className="px-3 py-2 rounded-xl text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3 py-2 rounded-xl text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             Home
           </Link>
 
           <Link
             href="/profile"
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 transition-colors shadow-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 transition-colors shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             aria-label="Access your authenticated profile"
           >
             <svg
