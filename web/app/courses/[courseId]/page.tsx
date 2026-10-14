@@ -1,0 +1,356 @@
+'use client';
+
+import React, { use, useEffect, useState, useCallback, Suspense } from 'react';
+import Link from 'next/link';
+import type { CourseDetail } from '@/lib/types';
+import { ApiError, getCourseById } from '@/lib/api';
+import {
+  parseCourseId,
+  formatCoursePrice,
+  formatPointsPrice,
+  getLevelBadgeStyle,
+} from '@/lib/course-utils';
+
+interface PageProps {
+  params: Promise<{ courseId: string }>;
+}
+
+type ViewState =
+  | { type: 'loading' }
+  | { type: 'invalid_id' }
+  | { type: 'not_found' }
+  | { type: 'service_unavailable' }
+  | { type: 'network_error'; message: string }
+  | { type: 'success'; course: CourseDetail };
+
+function CourseDetailContent({ params }: PageProps) {
+  const resolvedParams = use(params);
+  const rawCourseId = resolvedParams?.courseId;
+
+  const validCourseId = parseCourseId(rawCourseId);
+
+  const [viewState, setViewState] = useState<ViewState>(() =>
+    validCourseId === null ? { type: 'invalid_id' } : { type: 'loading' }
+  );
+  const [isRetrying, setIsRetrying] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (validCourseId === null) return;
+
+    let isMounted = true;
+
+    getCourseById(validCourseId)
+      .then((data) => {
+        if (isMounted) {
+          setViewState({ type: 'success', course: data });
+        }
+      })
+      .catch((err: unknown) => {
+        if (isMounted) {
+          if (err instanceof ApiError) {
+            if (err.status === 404) {
+              setViewState({ type: 'not_found' });
+            } else if (err.status === 503) {
+              setViewState({ type: 'service_unavailable' });
+            } else {
+              setViewState({
+                type: 'network_error',
+                message: err.message || 'Unable to load course.',
+              });
+            }
+          } else if (err instanceof Error) {
+            setViewState({
+              type: 'network_error',
+              message: err.message || 'Unable to connect to server.',
+            });
+          } else {
+            setViewState({
+              type: 'network_error',
+              message: 'An unexpected error occurred.',
+            });
+          }
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [validCourseId]);
+
+  const handleRetry = useCallback(async () => {
+    if (validCourseId === null || isRetrying) return;
+    setIsRetrying(true);
+
+    try {
+      const data = await getCourseById(validCourseId);
+      setViewState({ type: 'success', course: data });
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        if (err.status === 404) {
+          setViewState({ type: 'not_found' });
+        } else if (err.status === 503) {
+          setViewState({ type: 'service_unavailable' });
+        } else {
+          setViewState({
+            type: 'network_error',
+            message: err.message || 'Unable to load course.',
+          });
+        }
+      } else if (err instanceof Error) {
+        setViewState({
+          type: 'network_error',
+          message: err.message || 'Unable to connect to server.',
+        });
+      } else {
+        setViewState({
+          type: 'network_error',
+          message: 'An unexpected error occurred.',
+        });
+      }
+    } finally {
+      setIsRetrying(false);
+    }
+  }, [validCourseId, isRetrying]);
+
+  // Loading skeleton state
+  if (viewState.type === 'loading') {
+    return (
+      <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-10 px-4 sm:px-6 lg:px-8">
+        <div data-testid="course-detail-loading" className="max-w-4xl mx-auto space-y-6 animate-pulse">
+          <div className="h-5 bg-zinc-200 dark:bg-zinc-800 rounded w-32" />
+          <div className="h-64 bg-zinc-200 dark:bg-zinc-800 rounded-3xl" />
+          <div className="space-y-3">
+            <div className="h-8 bg-zinc-200 dark:bg-zinc-800 rounded w-2/3" />
+            <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-full" />
+            <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-4/5" />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Invalid ID or Not Found State
+  if (viewState.type === 'invalid_id' || viewState.type === 'not_found') {
+    return (
+      <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-16 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+        <div
+          data-testid="course-not-found"
+          className="max-w-md w-full text-center space-y-6 p-8 rounded-3xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 shadow-sm"
+        >
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-3xl select-none">
+            📖
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+              Course Not Found
+            </h1>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+              The course you are looking for does not exist, has an invalid identifier, or may have been removed from the catalog.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Link
+              href="/courses"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 transition-colors shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              <span>Browse Catalog</span>
+            </Link>
+            <Link
+              href="/"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              <span>Back Home</span>
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Error State (Network or Service Unavailable)
+  if (viewState.type === 'service_unavailable' || viewState.type === 'network_error') {
+    const isServiceDown = viewState.type === 'service_unavailable';
+    const message = isServiceDown
+      ? 'Database service is temporarily unavailable. Please try again shortly.'
+      : viewState.message;
+
+    return (
+      <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-16 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+        <div
+          data-testid="course-error-state"
+          className="max-w-md w-full text-center space-y-6 p-8 rounded-3xl border border-red-200 dark:border-red-900/50 bg-red-50/40 dark:bg-red-950/20 shadow-sm"
+        >
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-red-100 dark:bg-red-900/50 flex items-center justify-center text-red-600 dark:text-red-400">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+              Unable to Load Course
+            </h1>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+              {message}
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleRetry}
+              disabled={isRetrying}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 transition-colors shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50"
+            >
+              <span>{isRetrying ? 'Retrying...' : 'Try Again'}</span>
+            </button>
+            <Link
+              href="/courses"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              <span>Back to Catalog</span>
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Success State
+  const course = viewState.course;
+  const levelStyle = getLevelBadgeStyle(course.level);
+
+  return (
+    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-10 px-4 sm:px-6 lg:px-8">
+      <div data-testid="course-detail-view" className="max-w-4xl mx-auto space-y-8">
+        {/* Navigation Breadcrumb */}
+        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+          <Link href="/courses" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors flex items-center gap-1">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span>Back to Catalog</span>
+          </Link>
+          <span>/</span>
+          <span className="text-zinc-900 dark:text-zinc-100 font-medium truncate max-w-xs">
+            {course.title}
+          </span>
+        </nav>
+
+        {/* Hero Card (Symmetric & Attractive) */}
+        <article className="rounded-3xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 shadow-xs overflow-hidden">
+          {/* Header Banner */}
+          <div className="relative w-full py-12 px-6 sm:px-10 bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-950/40 dark:via-purple-950/40 dark:to-pink-950/40 border-b border-zinc-100 dark:border-zinc-800/80 flex flex-col items-center text-center space-y-4">
+            {/* Thumbnail Emoji */}
+            <div className="w-20 h-20 rounded-2xl bg-white/80 dark:bg-zinc-800/80 backdrop-blur-md shadow-sm border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center text-4xl select-none">
+              {course.thumbnail || '📚'}
+            </div>
+
+            {/* Badges */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white/90 dark:bg-zinc-900/90 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/50 shadow-xs">
+                {course.category}
+              </span>
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold border shadow-xs ${levelStyle.bg} ${levelStyle.text} ${levelStyle.border}`}>
+                {course.level}
+              </span>
+              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 flex items-center gap-1 shadow-xs">
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <span>{Number(course.rating).toFixed(1)} Rating</span>
+              </span>
+            </div>
+
+            {/* Course Title */}
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 max-w-2xl">
+              {course.title}
+            </h1>
+
+            {/* Instructor Attribution */}
+            <div className="flex items-center gap-2 pt-1">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                {course.instructor.charAt(0).toUpperCase()}
+              </div>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Taught by <span className="font-semibold text-zinc-900 dark:text-zinc-100">{course.instructor}</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Body Section */}
+          <div className="p-6 sm:p-10 space-y-8">
+            {/* Description */}
+            <section className="space-y-3">
+              <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                About This Course
+              </h2>
+              <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-300 leading-relaxed whitespace-pre-line">
+                {course.description}
+              </p>
+            </section>
+
+            {/* Course Details Grid (Symmetric 4-column spec) */}
+            <section aria-label="Course details" className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-zinc-100 dark:border-zinc-800">
+              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center space-y-1">
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Duration</span>
+                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{course.duration}</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center space-y-1">
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Lessons</span>
+                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{course.total_lessons} total</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center space-y-1">
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Level</span>
+                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{course.level}</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center space-y-1">
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Price</span>
+                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{formatCoursePrice(course.price)}</p>
+              </div>
+            </section>
+
+            {/* Points and Enrollment Foundation Note */}
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-50/50 via-purple-50/50 to-pink-50/50 dark:from-indigo-950/20 dark:via-purple-950/20 dark:to-pink-950/20 border border-indigo-100 dark:border-indigo-900/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="space-y-0.5 text-center sm:text-left">
+                <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                  Course Value &amp; Points
+                </span>
+                <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                  Standard tuition: <span className="font-bold">{formatCoursePrice(course.price)}</span>
+                  {course.points_price > 0 && (
+                    <span> • Redeemable for <span className="font-bold text-indigo-600 dark:text-indigo-400">{formatPointsPrice(course.points_price)}</span></span>
+                  )}
+                </p>
+              </div>
+              <Link
+                href="/courses"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 transition-colors shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 whitespace-nowrap"
+              >
+                <span>Back to All Courses</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        </article>
+      </div>
+    </main>
+  );
+}
+
+export default function CourseDetailPage({ params }: PageProps) {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-10 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto space-y-6 animate-pulse">
+            <div className="h-5 bg-zinc-200 dark:bg-zinc-800 rounded w-32" />
+            <div className="h-64 bg-zinc-200 dark:bg-zinc-800 rounded-3xl" />
+          </div>
+        </main>
+      }
+    >
+      <CourseDetailContent params={params} />
+    </Suspense>
+  );
+}
