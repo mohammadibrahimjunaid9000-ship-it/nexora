@@ -1,4 +1,11 @@
-import type { UserProfileResponse, UpdateProfileRequest, PublicUserProfile } from './types';
+import type {
+  UserProfileResponse,
+  UpdateProfileRequest,
+  PublicUserProfile,
+  CourseListResponse,
+  CourseDetail,
+  CourseFilterParams,
+} from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -76,6 +83,41 @@ export async function getPublicUserProfile(userId: number): Promise<PublicUserPr
     throw new Error('User ID must be a positive integer.');
   }
   return fetchApi<PublicUserProfile>(`/api/v1/users/${userId}`, {
+    method: 'GET',
+  });
+}
+
+/**
+ * Fetch course catalog listing with optional search, category, and level filters.
+ * Public endpoint; credentials included.
+ */
+export async function getCourses(params?: CourseFilterParams): Promise<CourseListResponse> {
+  const query = new URLSearchParams();
+  if (params?.search && params.search.trim()) {
+    query.set('search', params.search.trim());
+  }
+  if (params?.category && params.category.trim()) {
+    query.set('category', params.category.trim());
+  }
+  if (params?.level && params.level.trim()) {
+    query.set('level', params.level.trim());
+  }
+  const queryString = query.toString();
+  const endpoint = queryString ? `/api/v1/courses?${queryString}` : '/api/v1/courses';
+  return fetchApi<CourseListResponse>(endpoint, {
+    method: 'GET',
+  });
+}
+
+/**
+ * Fetch public course detail by numeric ID.
+ * Validates courseId > 0 and integer.
+ */
+export async function getCourseById(courseId: number): Promise<CourseDetail> {
+  if (typeof courseId !== 'number' || !Number.isInteger(courseId) || courseId <= 0) {
+    throw new Error('Course ID must be a positive integer.');
+  }
+  return fetchApi<CourseDetail>(`/api/v1/courses/${courseId}`, {
     method: 'GET',
   });
 }

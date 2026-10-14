@@ -29,6 +29,13 @@ export function Navbar() {
           </Link>
 
           <Link
+            href="/courses"
+            className="px-3 py-2 rounded-xl text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
+            Courses
+          </Link>
+
+          <Link
             href="/profile"
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 transition-colors shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             aria-label="Access your authenticated profile"
