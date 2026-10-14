@@ -119,39 +119,32 @@ function PublicProfileContent({ params }: PageProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-black font-sans text-zinc-900 dark:text-zinc-100 antialiased">
-      {/* Symmetric Header / Minimal Navigation */}
-      <header className="w-full border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link
-            href="/"
-            className="flex items-center gap-2 group transition-opacity hover:opacity-90"
-            aria-label="Nexora Home"
-          >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-base shadow-sm">
-              N
-            </div>
-            <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-zinc-900 to-zinc-700 dark:from-white dark:to-zinc-300 bg-clip-text text-transparent">
-              NEXORA
-            </span>
+    <div className="min-h-[calc(100vh-4rem)] flex flex-col bg-zinc-50 dark:bg-black font-sans text-zinc-900 dark:text-zinc-100 antialiased">
+      {/* Sub-navigation */}
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-6 flex items-center justify-between text-sm">
+        <nav aria-label="Breadcrumb navigation" className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+          <Link href="/" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+            Home
           </Link>
-
-          <nav aria-label="Breadcrumb navigation" className="flex items-center gap-3 text-sm">
-            <Link
-              href="/"
-              className="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
-            >
-              Home
-            </Link>
-            <span className="text-zinc-300 dark:text-zinc-700">/</span>
-            <span className="text-zinc-500 dark:text-zinc-400">Users</span>
-            <span className="text-zinc-300 dark:text-zinc-700">/</span>
-            <span className="font-medium text-zinc-900 dark:text-zinc-100">
-              {validUserId !== null ? `#${validUserId}` : 'Profile'}
-            </span>
-          </nav>
-        </div>
-      </header>
+          <span className="text-zinc-300 dark:text-zinc-700">/</span>
+          <span className="text-zinc-500 dark:text-zinc-400">Users</span>
+          <span className="text-zinc-300 dark:text-zinc-700">/</span>
+          <span className="font-medium text-zinc-900 dark:text-zinc-100">
+            {validUserId !== null ? `#${validUserId}` : 'Profile'}
+          </span>
+        </nav>
+        <button
+          type="button"
+          onClick={handleGoBack}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
+          aria-label="Go back to previous screen"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Go Back
+        </button>
+      </div>
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col items-center justify-center py-8 sm:py-12 px-4">
@@ -347,29 +340,15 @@ function PublicProfileContent({ params }: PageProps) {
 
 function PublicProfileLoadingShell() {
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-black font-sans text-zinc-900 dark:text-zinc-100 antialiased">
-      <header className="w-full border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-base shadow-sm">
-              N
-            </div>
-            <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-zinc-900 to-zinc-700 dark:from-white dark:to-zinc-300 bg-clip-text text-transparent">
-              NEXORA
-            </span>
-          </div>
+    <div className="flex-1 flex flex-col items-center justify-center py-8 sm:py-12 px-4">
+      <div className="w-full max-w-xl mx-auto px-4 py-8 animate-pulse">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 shadow-sm text-center">
+          <div className="mx-auto w-24 h-24 rounded-full bg-zinc-200 dark:bg-zinc-800 ring-4 ring-zinc-100 dark:ring-zinc-800/50" />
+          <div className="h-6 w-40 bg-zinc-200 dark:bg-zinc-800 rounded-lg mx-auto mt-5" />
+          <div className="h-5 w-20 bg-zinc-200 dark:bg-zinc-800 rounded-full mx-auto mt-3" />
+          <div className="h-14 bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl mt-8" />
         </div>
-      </header>
-      <main className="flex-1 flex flex-col items-center justify-center py-8 sm:py-12 px-4">
-        <div className="w-full max-w-xl mx-auto px-4 py-8 animate-pulse">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 shadow-sm text-center">
-            <div className="mx-auto w-24 h-24 rounded-full bg-zinc-200 dark:bg-zinc-800 ring-4 ring-zinc-100 dark:ring-zinc-800/50" />
-            <div className="h-6 w-40 bg-zinc-200 dark:bg-zinc-800 rounded-lg mx-auto mt-5" />
-            <div className="h-5 w-20 bg-zinc-200 dark:bg-zinc-800 rounded-full mx-auto mt-3" />
-            <div className="h-14 bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl mt-8" />
-          </div>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }
