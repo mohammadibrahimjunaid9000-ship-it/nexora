@@ -5,6 +5,8 @@ import type {
   CourseListResponse,
   CourseDetail,
   CourseFilterParams,
+  EnrollmentRecord,
+  EnrollmentStatusResponse,
 } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -119,5 +121,31 @@ export async function getCourseById(courseId: number): Promise<CourseDetail> {
   }
   return fetchApi<CourseDetail>(`/api/v1/courses/${courseId}`, {
     method: 'GET',
+  });
+}
+
+/**
+ * Fetch course enrollment status for the currently authenticated user.
+ * Relies strictly on HttpOnly credentials.
+ */
+export async function getEnrollmentStatus(courseId: number): Promise<EnrollmentStatusResponse> {
+  if (typeof courseId !== 'number' || !Number.isInteger(courseId) || courseId <= 0) {
+    throw new Error('Course ID must be a positive integer.');
+  }
+  return fetchApi<EnrollmentStatusResponse>(`/api/v1/courses/${courseId}/enrollment-status`, {
+    method: 'GET',
+  });
+}
+
+/**
+ * Enroll currently authenticated learner in a course.
+ * Relies strictly on HttpOnly credentials and role authorization.
+ */
+export async function enrollInCourse(courseId: number): Promise<EnrollmentRecord> {
+  if (typeof courseId !== 'number' || !Number.isInteger(courseId) || courseId <= 0) {
+    throw new Error('Course ID must be a positive integer.');
+  }
+  return fetchApi<EnrollmentRecord>(`/api/v1/courses/${courseId}/enroll`, {
+    method: 'POST',
   });
 }

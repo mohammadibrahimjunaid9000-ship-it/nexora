@@ -75,3 +75,19 @@ export interface CourseFilterParams {
   category?: string;
   level?: string;
 }
+
+// Stage 9 Course Enrollment Types
+export interface EnrollmentRecord {
+  id: number;
+  user_id: number;
+  course_id: number;
+  progress: number;
+  completed_lessons: number;
+  enrolled_at?: string | null;
+}
+
+export interface EnrollmentStatusResponse {
+  is_enrolled: boolean;
+  course_id: number;
+  enrollment?: EnrollmentRecord | null;
+}

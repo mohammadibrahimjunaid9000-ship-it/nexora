@@ -43,9 +43,10 @@ def supabase_health_check(
     return service.get_diagnostics()
 
 # Register Routers
-from api.app.routes import auth_router, users_router, courses_router
+from api.app.routes import auth_router, users_router, courses_router, enrollments_router
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(courses_router)
+app.include_router(enrollments_router)
 
 
