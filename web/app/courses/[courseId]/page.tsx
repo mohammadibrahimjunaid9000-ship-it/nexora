@@ -2,8 +2,8 @@
 
 import React, { use, useEffect, useState, useCallback, Suspense } from 'react';
 import Link from 'next/link';
-import type { CourseDetail } from '@/lib/types';
-import { ApiError, getCourseById } from '@/lib/api';
+import type { CourseDetail, EnrollmentRecord } from '@/lib/types';
+import { ApiError, getCourseById, getEnrollmentStatus, enrollInCourse } from '@/lib/api';
 import {
   parseCourseId,
   formatCoursePrice,
@@ -23,6 +23,14 @@ type ViewState =
   | { type: 'network_error'; message: string }
   | { type: 'success'; course: CourseDetail };
 
+type EnrollmentState =
+  | { type: 'checking' }
+  | { type: 'not_enrolled' }
+  | { type: 'enrolling' }
+  | { type: 'enrolled'; enrollment?: EnrollmentRecord | null; justEnrolled?: boolean }
+  | { type: 'unauthenticated' }
+  | { type: 'error'; message: string };
+
 function CourseDetailContent({ params }: PageProps) {
   const resolvedParams = use(params);
   const rawCourseId = resolvedParams?.courseId;
@@ -32,8 +40,10 @@ function CourseDetailContent({ params }: PageProps) {
   const [viewState, setViewState] = useState<ViewState>(() =>
     validCourseId === null ? { type: 'invalid_id' } : { type: 'loading' }
   );
+  const [enrollmentState, setEnrollmentState] = useState<EnrollmentState>({ type: 'checking' });
   const [isRetrying, setIsRetrying] = useState<boolean>(false);
 
+  // Fetch course details & check initial enrollment status
   useEffect(() => {
     if (validCourseId === null) return;
 
@@ -72,12 +82,98 @@ function CourseDetailContent({ params }: PageProps) {
         }
       });
 
+    getEnrollmentStatus(validCourseId)
+      .then((statusRes) => {
+        if (isMounted) {
+          if (statusRes.is_enrolled) {
+            setEnrollmentState({ type: 'enrolled', enrollment: statusRes.enrollment });
+          } else {
+            setEnrollmentState({ type: 'not_enrolled' });
+          }
+        }
+      })
+      .catch((err: unknown) => {
+        if (isMounted) {
+          if (err instanceof ApiError) {
+            if (err.status === 401) {
+              setEnrollmentState({ type: 'unauthenticated' });
+            } else if (err.status === 403) {
+              setEnrollmentState({
+                type: 'error',
+                message: 'Only learner accounts are eligible to enroll in courses.',
+              });
+            } else {
+              setEnrollmentState({
+                type: 'error',
+                message: err.message || 'Unable to verify enrollment status.',
+              });
+            }
+          } else {
+            setEnrollmentState({
+              type: 'error',
+              message: 'Unable to verify enrollment status.',
+            });
+          }
+        }
+      });
+
     return () => {
       isMounted = false;
     };
   }, [validCourseId]);
 
-  const handleRetry = useCallback(async () => {
+  // Handle enrollment action
+  const handleEnroll = async () => {
+    if (
+      validCourseId === null ||
+      enrollmentState.type === 'enrolling' ||
+      enrollmentState.type === 'enrolled'
+    ) {
+      return;
+    }
+
+    setEnrollmentState({ type: 'enrolling' });
+
+    try {
+      const newEnrollment = await enrollInCourse(validCourseId);
+      setEnrollmentState({
+        type: 'enrolled',
+        enrollment: newEnrollment,
+        justEnrolled: true,
+      });
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        if (err.status === 409) {
+          // Already enrolled
+          setEnrollmentState({ type: 'enrolled' });
+        } else if (err.status === 401) {
+          setEnrollmentState({ type: 'unauthenticated' });
+        } else if (err.status === 403) {
+          setEnrollmentState({
+            type: 'error',
+            message: 'Learner privileges required. Creator or admin accounts cannot enroll as students.',
+          });
+        } else {
+          setEnrollmentState({
+            type: 'error',
+            message: err.message || 'Enrollment request failed. Please try again.',
+          });
+        }
+      } else if (err instanceof Error) {
+        setEnrollmentState({
+          type: 'error',
+          message: err.message || 'Network error during enrollment.',
+        });
+      } else {
+        setEnrollmentState({
+          type: 'error',
+          message: 'An unexpected error occurred during enrollment.',
+        });
+      }
+    }
+  };
+
+  const handleRetryCourse = useCallback(async () => {
     if (validCourseId === null || isRetrying) return;
     setIsRetrying(true);
 
@@ -196,7 +292,7 @@ function CourseDetailContent({ params }: PageProps) {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <button
               type="button"
-              onClick={handleRetry}
+              onClick={handleRetryCourse}
               disabled={isRetrying}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 transition-colors shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50"
             >
@@ -308,7 +404,167 @@ function CourseDetailContent({ params }: PageProps) {
               </div>
             </section>
 
-            {/* Points and Enrollment Foundation Note */}
+            {/* Stage 9: Enrollment Action & Status Card (Symmetric & Attractive) */}
+            <section
+              data-testid="enrollment-section"
+              aria-label="Course enrollment status and action"
+              className="p-6 sm:p-7 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 shadow-xs space-y-4"
+            >
+              {enrollmentState.type === 'checking' && (
+                <div
+                  data-testid="enrollment-checking"
+                  className="flex items-center justify-between gap-4 animate-pulse"
+                >
+                  <div className="space-y-1.5 flex-1">
+                    <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-1/3" />
+                    <div className="h-3 bg-zinc-200 dark:bg-zinc-700 rounded w-1/2" />
+                  </div>
+                  <div className="h-10 bg-zinc-200 dark:bg-zinc-700 rounded-xl w-36" />
+                </div>
+              )}
+
+              {enrollmentState.type === 'not_enrolled' && (
+                <div
+                  data-testid="enroll-not-enrolled-state"
+                  className="flex flex-col sm:flex-row items-center justify-between gap-4"
+                >
+                  <div className="space-y-1 text-center sm:text-left">
+                    <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+                      Enrollment Open
+                    </h3>
+                    <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
+                      Enroll now to track your learning journey and save your progress.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    data-testid="enroll-button"
+                    onClick={handleEnroll}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 cursor-pointer"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>Enroll in Course</span>
+                  </button>
+                </div>
+              )}
+
+              {enrollmentState.type === 'enrolling' && (
+                <div
+                  data-testid="enrollment-in-progress"
+                  className="flex flex-col sm:flex-row items-center justify-between gap-4"
+                >
+                  <div className="space-y-1 text-center sm:text-left">
+                    <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+                      Processing Enrollment
+                    </h3>
+                    <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
+                      Registering your enrollment securely in the database...
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    data-testid="enrolling-button"
+                    disabled
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold bg-indigo-600/70 text-white shadow-xs opacity-75 cursor-not-allowed"
+                  >
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span>Enrolling...</span>
+                  </button>
+                </div>
+              )}
+
+              {enrollmentState.type === 'enrolled' && (
+                <div
+                  data-testid="enrolled-badge"
+                  className="p-4 sm:p-5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 flex flex-col sm:flex-row items-center justify-between gap-4"
+                >
+                  <div className="flex items-center gap-3.5 text-center sm:text-left">
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2 justify-center sm:justify-start">
+                        <h3 className="text-sm font-bold text-emerald-800 dark:text-emerald-200">
+                          You are enrolled in this course
+                        </h3>
+                        {enrollmentState.justEnrolled && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-200/80 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
+                            New!
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-emerald-700/80 dark:text-emerald-300/80">
+                        Progress: {enrollmentState.enrollment?.progress ?? 0}% completed • {enrollmentState.enrollment?.completed_lessons ?? 0} lessons done
+                      </p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 text-white shadow-xs">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Active Enrollment</span>
+                  </span>
+                </div>
+              )}
+
+              {enrollmentState.type === 'unauthenticated' && (
+                <div
+                  data-testid="enroll-unauthenticated"
+                  className="flex flex-col sm:flex-row items-center justify-between gap-4"
+                >
+                  <div className="space-y-1 text-center sm:text-left">
+                    <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+                      Sign In to Enroll
+                    </h3>
+                    <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
+                      Please log in with your learner account to enroll and start learning.
+                    </p>
+                  </div>
+                  <Link
+                    href="/login"
+                    data-testid="sign-in-to-enroll-link"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 shadow-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 whitespace-nowrap"
+                  >
+                    <span>Sign In to Enroll</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                    </svg>
+                  </Link>
+                </div>
+              )}
+
+              {enrollmentState.type === 'error' && (
+                <div
+                  data-testid="enroll-error"
+                  className="p-4 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left"
+                >
+                  <div className="space-y-0.5">
+                    <p className="text-xs sm:text-sm font-semibold text-red-700 dark:text-red-300">
+                      Enrollment Notice
+                    </p>
+                    <p className="text-xs text-red-600/90 dark:text-red-400/90">
+                      {enrollmentState.message}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleEnroll}
+                    className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-500 text-white shadow-xs transition-colors shrink-0"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              )}
+            </section>
+
+            {/* Course Value & Catalog Back Navigation */}
             <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-50/50 via-purple-50/50 to-pink-50/50 dark:from-indigo-950/20 dark:via-purple-950/20 dark:to-pink-950/20 border border-indigo-100 dark:border-indigo-900/40 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="space-y-0.5 text-center sm:text-left">
                 <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
