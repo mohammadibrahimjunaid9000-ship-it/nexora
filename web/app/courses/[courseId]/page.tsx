@@ -2,14 +2,21 @@
 
 import React, { use, useEffect, useState, useCallback, Suspense } from 'react';
 import Link from 'next/link';
-import type { CourseDetail, EnrollmentRecord } from '@/lib/types';
-import { ApiError, getCourseById, getEnrollmentStatus, enrollInCourse } from '@/lib/api';
+import type { CourseDetail, EnrollmentRecord, LessonItem } from '@/lib/types';
+import {
+  ApiError,
+  getCourseById,
+  getEnrollmentStatus,
+  enrollInCourse,
+  getCourseLessons,
+} from '@/lib/api';
 import {
   parseCourseId,
   formatCoursePrice,
   formatPointsPrice,
   getLevelBadgeStyle,
 } from '@/lib/course-utils';
+
 
 interface PageProps {
   params: Promise<{ courseId: string }>;
@@ -31,6 +38,11 @@ type EnrollmentState =
   | { type: 'unauthenticated' }
   | { type: 'error'; message: string };
 
+type LessonsState =
+  | { type: 'loading' }
+  | { type: 'error'; message: string }
+  | { type: 'loaded'; lessons: LessonItem[]; total: number };
+
 function CourseDetailContent({ params }: PageProps) {
   const resolvedParams = use(params);
   const rawCourseId = resolvedParams?.courseId;
@@ -41,7 +53,10 @@ function CourseDetailContent({ params }: PageProps) {
     validCourseId === null ? { type: 'invalid_id' } : { type: 'loading' }
   );
   const [enrollmentState, setEnrollmentState] = useState<EnrollmentState>({ type: 'checking' });
+  const [lessonsState, setLessonsState] = useState<LessonsState>({ type: 'loading' });
   const [isRetrying, setIsRetrying] = useState<boolean>(false);
+  const [isRetryingLessons, setIsRetryingLessons] = useState<boolean>(false);
+
 
   // Fetch course details & check initial enrollment status
   useEffect(() => {
@@ -117,10 +132,28 @@ function CourseDetailContent({ params }: PageProps) {
         }
       });
 
+    getCourseLessons(validCourseId)
+      .then((lessonsRes) => {
+        if (isMounted) {
+          setLessonsState({
+            type: 'loaded',
+            lessons: lessonsRes.lessons || [],
+            total: lessonsRes.total ?? lessonsRes.lessons?.length ?? 0,
+          });
+        }
+      })
+      .catch((err: unknown) => {
+        if (isMounted) {
+          const msg = err instanceof Error ? err.message : 'Unable to load course lessons.';
+          setLessonsState({ type: 'error', message: msg });
+        }
+      });
+
     return () => {
       isMounted = false;
     };
   }, [validCourseId]);
+
 
   // Handle enrollment action
   const handleEnroll = async () => {
@@ -207,6 +240,26 @@ function CourseDetailContent({ params }: PageProps) {
       setIsRetrying(false);
     }
   }, [validCourseId, isRetrying]);
+
+  const handleRetryLessons = useCallback(async () => {
+    if (validCourseId === null || isRetryingLessons) return;
+    setIsRetryingLessons(true);
+    setLessonsState({ type: 'loading' });
+    try {
+      const data = await getCourseLessons(validCourseId);
+      setLessonsState({
+        type: 'loaded',
+        lessons: data.lessons || [],
+        total: data.total ?? data.lessons?.length ?? 0,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unable to load course lessons.';
+      setLessonsState({ type: 'error', message: msg });
+    } finally {
+      setIsRetryingLessons(false);
+    }
+  }, [validCourseId, isRetryingLessons]);
+
 
   // Loading skeleton state
   if (viewState.type === 'loading') {
@@ -563,6 +616,124 @@ function CourseDetailContent({ params }: PageProps) {
                 </div>
               )}
             </section>
+
+            {/* Stage 10: Course Curriculum / Lessons Section (Symmetric & Attractive) */}
+            <section
+              data-testid="lessons-section"
+              aria-label="Course Curriculum and Lessons"
+              className="p-6 sm:p-8 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 shadow-xs space-y-6"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800/80 pb-4">
+                <div className="space-y-0.5">
+                  <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                    Course Curriculum
+                  </h2>
+                  <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+                    Structured lessons and learning modules for this course.
+                  </p>
+                </div>
+                {lessonsState.type === 'loaded' && (
+                  <span className="text-xs font-semibold px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 self-start sm:self-auto">
+                    {lessonsState.total} {lessonsState.total === 1 ? 'lesson' : 'lessons'} published
+                  </span>
+                )}
+              </div>
+
+              {/* Loading State */}
+              {lessonsState.type === 'loading' && (
+                <div data-testid="lessons-loading" className="space-y-3 animate-pulse">
+                  <div className="h-16 bg-zinc-100 dark:bg-zinc-800/60 rounded-xl" />
+                  <div className="h-16 bg-zinc-100 dark:bg-zinc-800/60 rounded-xl" />
+                  <div className="h-16 bg-zinc-100 dark:bg-zinc-800/60 rounded-xl" />
+                </div>
+              )}
+
+              {/* Error State */}
+              {lessonsState.type === 'error' && (
+                <div
+                  data-testid="lessons-error"
+                  className="p-5 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left"
+                >
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-red-700 dark:text-red-300">
+                      Unable to Load Lessons
+                    </p>
+                    <p className="text-xs text-red-600/90 dark:text-red-400/90">
+                      {lessonsState.message}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    data-testid="lessons-retry-button"
+                    onClick={handleRetryLessons}
+                    disabled={isRetryingLessons}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-500 text-white shadow-xs transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+                  >
+                    {isRetryingLessons ? 'Retrying...' : 'Retry Lessons'}
+                  </button>
+                </div>
+              )}
+
+              {/* Empty State */}
+              {lessonsState.type === 'loaded' && lessonsState.lessons.length === 0 && (
+                <div
+                  data-testid="lessons-empty"
+                  className="py-10 px-6 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/40 text-center space-y-3"
+                >
+                  <div className="w-12 h-12 mx-auto rounded-xl bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center text-2xl select-none">
+                    📚
+                  </div>
+                  <div className="max-w-md mx-auto space-y-1">
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                      No Lessons Available Yet
+                    </h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                      The instructor has not published lesson modules for this course yet. Check back soon for the full syllabus.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Lessons List State */}
+              {lessonsState.type === 'loaded' && lessonsState.lessons.length > 0 && (
+                <div data-testid="lessons-list" className="space-y-3">
+                  {lessonsState.lessons.map((lesson, idx) => (
+                    <div
+                      key={lesson.id}
+                      data-testid={`lesson-item-${lesson.id}`}
+                      className="p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 hover:border-indigo-300 dark:hover:border-indigo-700/60 bg-zinc-50/50 dark:bg-zinc-800/30 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    >
+                      <div className="flex items-start sm:items-center gap-3.5">
+                        <span className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 text-xs font-bold flex items-center justify-center shrink-0">
+                          {idx + 1}
+                        </span>
+                        <div className="space-y-0.5">
+                          <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                            {lesson.title}
+                          </h4>
+                          {lesson.description && (
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1">
+                              {lesson.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Link
+                        href={`/courses/${course.id}/lessons/${lesson.id}`}
+                        data-testid={`lesson-link-${lesson.id}`}
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 transition-colors shadow-xs shrink-0 self-end sm:self-auto"
+                      >
+                        <span>View Lesson</span>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
 
             {/* Course Value & Catalog Back Navigation */}
             <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-50/50 via-purple-50/50 to-pink-50/50 dark:from-indigo-950/20 dark:via-purple-950/20 dark:to-pink-950/20 border border-indigo-100 dark:border-indigo-900/40 flex flex-col sm:flex-row items-center justify-between gap-4">

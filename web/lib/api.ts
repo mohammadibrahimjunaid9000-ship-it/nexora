@@ -7,7 +7,10 @@ import type {
   CourseFilterParams,
   EnrollmentRecord,
   EnrollmentStatusResponse,
+  CourseLessonsResponse,
+  LessonDetail,
 } from './types';
+
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -25,7 +28,7 @@ export class ApiError extends Error {
 
 export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-  
+
   const headers = new Headers(options.headers || {});
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
@@ -147,5 +150,34 @@ export async function enrollInCourse(courseId: number): Promise<EnrollmentRecord
   }
   return fetchApi<EnrollmentRecord>(`/api/v1/courses/${courseId}/enroll`, {
     method: 'POST',
+  });
+}
+
+/**
+ * Fetch curriculum lessons for a specific course.
+ * Public endpoint; credentials included.
+ */
+export async function getCourseLessons(courseId: number): Promise<CourseLessonsResponse> {
+  if (typeof courseId !== 'number' || !Number.isInteger(courseId) || courseId <= 0) {
+    throw new Error('Course ID must be a positive integer.');
+  }
+  return fetchApi<CourseLessonsResponse>(`/api/v1/courses/${courseId}/lessons`, {
+    method: 'GET',
+  });
+}
+
+/**
+ * Fetch lesson details by numeric ID scoped to its parent course.
+ * Public endpoint; credentials included.
+ */
+export async function getLessonById(courseId: number, lessonId: number): Promise<LessonDetail> {
+  if (typeof courseId !== 'number' || !Number.isInteger(courseId) || courseId <= 0) {
+    throw new Error('Course ID must be a positive integer.');
+  }
+  if (typeof lessonId !== 'number' || !Number.isInteger(lessonId) || lessonId <= 0) {
+    throw new Error('Lesson ID must be a positive integer.');
+  }
+  return fetchApi<LessonDetail>(`/api/v1/courses/${courseId}/lessons/${lessonId}`, {
+    method: 'GET',
   });
 }

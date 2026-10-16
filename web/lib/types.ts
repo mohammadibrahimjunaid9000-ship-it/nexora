@@ -91,3 +91,24 @@ export interface EnrollmentStatusResponse {
   course_id: number;
   enrollment?: EnrollmentRecord | null;
 }
+
+// Stage 10 Learning Foundation Types
+export interface LessonItem {
+  id: number;
+  course_id: number;
+  title: string;
+  description?: string | null;
+}
+
+export interface LessonDetail {
+  id: number;
+  course_id: number;
+  title: string;
+  description?: string | null;
+}
+
+export interface CourseLessonsResponse {
+  course_id: number;
+  lessons: LessonItem[];
+  total: number;
+}
